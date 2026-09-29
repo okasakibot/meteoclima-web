@@ -20,8 +20,8 @@ const normativas = {
         alerta: 'El dashboard confirma que la estación cumple con la distancia (< 5km) y el periodo (>= 3 años). El especialista debe confirmar en campo que no existan montañas o edificios que perturben el flujo lineal del viento.',
         ctaData: 'Más información',
         ctaNoData: 'Simulación en WRF para DTM (D.S. N° 027-2021-MINAM)',
-        waData: 'Hola Consultora Barlovento. Mi proyecto cuenta con estaciones aptas para DTM. Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad.',
-        waNoData: 'Hola Consultora Barlovento. Deseo más información sobre su servicio de simulación en WRF para DTM dentro de mi área de estudio.'
+        waData: 'Hola Consultora Meteoclima. Mi proyecto cuenta con estaciones aptas para DTM. Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad.',
+        waNoData: 'Hola Consultora Meteoclima. Deseo más información sobre su servicio de simulación en WRF para DTM dentro de mi área de estudio.'
     },
     'EIA': {
         titulo: 'Línea Base Climática (EIA/IGA)',
@@ -30,8 +30,8 @@ const normativas = {
         alerta: 'Para la variable de vientos, la normativa exige estrictamente utilizar una estación dentro del área de evaluación. Si la estación listada está fuera de su polígono, solo podrá usarla para temperatura y precipitación.',
         ctaData: 'Más información',
         ctaNoData: 'Regionalización o Interpolación Grillada (RM N.° 143-2025-MINAM)',
-        waData: 'Hola Consultora Barlovento. Mi proyecto cuenta con estaciones para Línea Base (EIA/IGA). Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad según RM N.° 143-2025-MINAM.',
-        waNoData: 'Hola Consultora Barlovento. Deseo más información sobre su servicio de regionalización o interpolación de productos grillados para Línea base climática para EIA/IGA.'
+        waData: 'Hola Consultora Meteoclima. Mi proyecto cuenta con estaciones para Línea Base (EIA/IGA). Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad según RM N.° 143-2025-MINAM.',
+        waNoData: 'Hola Consultora Meteoclima. Deseo más información sobre su servicio de regionalización o interpolación de productos grillados para Línea base climática para EIA/IGA.'
     },
     'HIDRO': {
         titulo: 'Tránsito de avenidas y Fajas Marginales',
@@ -40,8 +40,8 @@ const normativas = {
         alerta: 'Se muestran las estaciones cercanas al área de interés. El especialista debe validar mediante un Modelo de Elevación Digital (DEM) cuáles de estas estaciones hidrométricas se ubican aguas arriba de su punto de descarga o captación.',
         ctaData: 'Más información',
         ctaNoData: 'Simulaciones Históricas / Modelos (RJ N.° 332-2016-ANA)',
-        waData: 'Hola Consultora Barlovento. Mi proyecto cuenta con estaciones para Fajas Marginales. Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad según RJ N.° 332-2016-ANA.',
-        waNoData: 'Hola Consultora Barlovento. Deseo más información sobre su servicio de obtención de simulaciones históricas a partir de modelos hidrológicos para Tránsito de avenidas y delimitación de fajas marginales.'
+        waData: 'Hola Consultora Meteoclima. Mi proyecto cuenta con estaciones para Fajas Marginales. Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad según RJ N.° 332-2016-ANA.',
+        waNoData: 'Hola Consultora Meteoclima. Deseo más información sobre su servicio de obtención de simulaciones históricas a partir de modelos hidrológicos para Tránsito de avenidas y delimitación de fajas marginales.'
     },
     'EVAR': {
         titulo: 'Análisis de Riesgo Climático (EVAR)',
@@ -50,8 +50,8 @@ const normativas = {
         alerta: 'Las estaciones listadas cuentan con el historial necesario para evaluar la intensidad, magnitud y frecuencia (periodos de retorno) de peligros hidrometeorológicos en su área.',
         ctaData: 'Más información',
         ctaNoData: 'Series temporales vía Productos Grillados (RJ N° 112-2014-CENEPRED/J)',
-        waData: 'Hola Consultora Barlovento. Mi proyecto cuenta con estaciones para EVAR. Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad según RJ N° 112-2014-CENEPRED/J.',
-        waNoData: 'Hola Consultora Barlovento. Deseo más información sobre su servicio de obtención de series temporales consistentes a partir de productos grillados para Análisis de Riesgos Climáticos.'
+        waData: 'Hola Consultora Meteoclima. Mi proyecto cuenta con estaciones para EVAR. Deseo más información sobre su servicio de Gestión de Adquisición de Datos (trámites TUPA, certificados de calibración, fichas técnicas) y Control de Calidad según RJ N° 112-2014-CENEPRED/J.',
+        waNoData: 'Hola Consultora Meteoclima. Deseo más información sobre su servicio de obtención de series temporales consistentes a partir de productos grillados para Análisis de Riesgos Climáticos.'
     }
 };
 
