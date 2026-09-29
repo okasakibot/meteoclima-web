@@ -1,6 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap");
 :root {
     /* Colores de Branding */
-    --brand-dark: #1B1B3A; /* Azul Medianoche (Fondo Logo) */
+    --brand-dark: #0E3049; /* Azul Medianoche (Fondo Logo) */
     --brand-light: #F5F5F5; /* Blanco Humo (Fondo Body) */
     --text-main: #333333;
     --text-light: #E0E0E0;
@@ -60,10 +61,11 @@ header {
 }
 
 .brand-name {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-light);
-    letter-spacing: 1px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800; /* Extra negrita para darle peso de logo */
+    color: var(--text-light); /* O el color que ya tuvieras */
+    letter-spacing: -0.5px; /* Las fuentes de logo suelen estar más juntas */
 }
 
 nav ul {
@@ -102,8 +104,7 @@ nav a:hover {
 .hero {
             /* Fondo con gradiente oscuro y tu imagen local */
             /* Reemplaza 'mi_imagen_local.jpg' con la ruta real de tu archivo */
-            background: linear-gradient(rgba(27, 27, 58, 0.85), rgba(27, 27, 58, 0.7)), url('../img/hero_bg.jpg');
-
+            background: linear-gradient(rgba(80, 55, 35, 0.85), rgba(80, 55, 35, 0.7)), url('../img/hero_bg.jpg');
             /* Esta es la clave: asegura que la imagen cubra todo el contenedor */
             background-size: cover;
 
