@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma Infinito Meteoclima</title>
+    <!-- Cargamos Tailwind CSS para un diseño profesional y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .fila-hoy {
+            background-color: #fef3c7 !important; /* Amarillo suave para resaltar el día actual */
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-gray-800">
+
+    <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        
+        <!-- Encabezado de la página -->
+        <div class="bg-blue-900 text-white p-6 md:p-10 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2">Cronograma de Pronósticos</h1>
+            <p class="text-blue-200 text-lg">Meteoclima - Actualización Automática a 30 Días</p>
+        </div>
+
+        <div class="p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <p class="text-gray-600 text-sm md:text-base">
+                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta. El ciclo comienza el <span class="font-bold">26 de Octubre de 2026</span>.
+                </p>
+            </div>
+
+            <!-- Contenedor responsivo para la tabla -->
+            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Grupo Responsable</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actividad y Verificación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Las filas se generarán por JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Modal para editar grupo -->
+    <div id="modal-edicion" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-96 p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Editar Grupo del Día</h2>
+            <p id="modal-fecha-texto" class="text-sm text-gray-600 mb-4"></p>
+            
+            <div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
+                Selecciona <strong>exactamente 3 personas</strong>. El sistema auto-balanceará el cronograma en los días siguientes.
+            </div>
+
+            <div id="lista-personas" class="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                <!-- Checkboxes generados por JS -->
+            </div>
+            
+            <!-- Mensaje de error personalizado en lugar de usar alert() -->
+            <p id="error-msg" class="text-red-500 text-xs mt-2 hidden mb-4">Debes seleccionar exactamente a 3 personas.</p>
+
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="cerrarModal()" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
+                <button onclick="guardarEdicion()" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-colors">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Lista original de 12 integrantes
+        const personas = [
+            "Allen", "Brenda", "Genesis", "Yassira", "Angie", "Ashley", 
+            "Lourdes", "Italo", "Diego", "Leonardo", "Maria", "Yerson"
+        ];
+
+        // Usamos localStorage para guardar los cambios manuales (imprevistos)
+        let overrides = JSON.parse(localStorage.getItem('meteoclima_overrides') || '{}');
+        let asignaciones = {}; // Almacena qué grupo toca cada día absoluto
+
+        // --- LÓGICA DE SIMULACIÓN Y BALANCEO ---
+        // Para mantener el equilibrio y saber a quién le toca, simulamos desde el día 0 hasta el futuro.
+        function calcularAsignaciones(hastaDia) {
+            asignaciones = {};
+            let estado = {};
+            
+            // Inicializar contadores de las personas
+            personas.forEach((p, idx) => {
+                estado[p] = { count: 0, lastWorked: -1, defaultOrder: idx };
+            });
+
+            for (let d = 0; d <= hastaDia; d++) {
+                if (overrides[d]) {
+                    // Si hubo un imprevisto y se forzó un grupo mediante la UI, se respeta
+                    asignaciones[d] = overrides[d];
+                } else {
+                    // Si no, elegimos a las 3 personas que lleven más tiempo sin turno y tengan menos turnos totales
+                    let disponibles = [...personas].sort((a, b) => {
+                        // 1. Quien tenga menos turnos va primero
+                        if (estado[a].count !== estado[b].count) {
+                            return estado[a].count - estado[b].count;
+                        }
+                        // 2. Quien lleve más tiempo sin trabajar va primero (menor lastWorked)
+                        if (estado[a].lastWorked !== estado[b].lastWorked) {
+                            return estado[a].lastWorked - estado[b].lastWorked;
+                        }
+                        // 3. Desempate por orden alfabético/original para evitar aleatoriedades que rompan el historial
+                        return estado[a].defaultOrder - estado[b].defaultOrder;
+                    });
+                    
+                    // Tomamos a los 3 primeros de la lista ordenada
+                    asignaciones[d] = disponibles.slice(0, 3);
+                }
+
+                // Actualizar los contadores de quienes trabajaron en este día "d"
+                asignaciones[d].forEach(p => {
+                    estado[p].count++;
+                    estado[p].lastWorked = d;
+                });
+            }
+        }
+
+        // --- LÓGICA DE FECHAS ---
+        const fechaInicio = new Date(2026, 9, 26);
+        fechaInicio.setHours(0, 0, 0, 0);
+        const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+
+        function renderizarCronograma() {
+            const tbody = document.getElementById("tabla-body");
+            tbody.innerHTML = ""; // Limpiar tabla
+
+            let hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            
+            // Punto de partida de la pantalla
+            let fechaArranquePantalla = hoy > fechaInicio ? hoy : fechaInicio;
+
+            // Calcular cuántos días absolutos necesitamos simular para cubrir la pantalla
+            let diasSimular = 30;
+            let diaAbsolutoFinal = Math.round((new Date(fechaArranquePantalla.getTime() + (diasSimular * 24 * 60 * 60 * 1000)) - fechaInicio) / (1000 * 60 * 60 * 24));
+            
+            // Computar todo el historial desde el día 0 (26 de Oct) hasta el día final necesario
+            calcularAsignaciones(Math.max(diaAbsolutoFinal, 0));
+
+            for (let i = 0; i < diasSimular; i++) {
+                let fechaActual = new Date(fechaArranquePantalla);
+                fechaActual.setDate(fechaActual.getDate() + i);
+                
+                let diffTiempo = fechaActual - fechaInicio;
+                let diffDias = Math.round(diffTiempo / (1000 * 60 * 60 * 24));
+                
+                // Evitar dibujar fechas anteriores al inicio
+                if (diffDias < 0) continue;
+
+                let grupoHoy = asignaciones[diffDias];
+                let integrantesStr = grupoHoy.join(", ");
+                // Etiqueta visual para indicar si un turno fue alterado manualmente
+                let modificadoHTML = overrides[diffDias] ? `<span class="ml-2 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full" title="Grupo editado manualmente por un imprevisto">Editado</span>` : '';
+                
+                let actividad = "";
+                let fechaSiguiente = new Date(fechaActual);
+                fechaSiguiente.setDate(fechaSiguiente.getDate() + 1);
+                let diaSig = fechaSiguiente.toLocaleDateString('es-ES', {weekday: 'long'});
+                let diaActualNombre = fechaActual.toLocaleDateString('es-ES', {weekday: 'long'});
+
+                if (diffDias === 0) {
+                    actividad = `<span class="font-semibold text-blue-700">Pronóstico Inicial:</span> Elaborar pronóstico con condiciones del lunes para el martes. Publicar hoy en la noche.`;
+                } else if (diffDias === 1) {
+                    actividad = `<span class="font-semibold text-blue-700">Pronóstico Inicial:</span> Elaborar pronóstico con condiciones del martes para el miércoles. Publicar hoy en la noche.`;
+                } else {
+                    let grupoVerificar = asignaciones[diffDias - 2];
+                    let nombresVerificar = grupoVerificar ? grupoVerificar.join(", ") : "No disponible";
+                    
+                    actividad = `
+                        <span class="font-semibold text-red-600">1. Verifica:</span> El pronóstico hecho hace 2 días por: <strong>${nombresVerificar}</strong>.<br>
+                        <span class="font-semibold text-green-700">2. Pronostica:</span> Elabora y publica el ${diaActualNombre} el pronóstico válido para el <strong>${diaSig}</strong>.
+                    `;
+                }
+
+                let tr = document.createElement("tr");
+                tr.className = "hover:bg-gray-100 transition-colors duration-200";
+                if (fechaActual.getTime() === hoy.getTime()) {
+                    tr.classList.add("fila-hoy");
+                }
+
+                let fechaTexto = fechaActual.toLocaleDateString('es-ES', opcionesFecha);
+                fechaTexto = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        ${fechaTexto}
+                        ${fechaActual.getTime() === hoy.getTime() ? '<span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Hoy</span>' : ''}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-700 font-bold flex items-center justify-between">
+                        <span>${integrantesStr} ${modificadoHTML}</span>
+                        <button onclick="abrirModal(${diffDias}, '${fechaTexto}')" class="ml-4 text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded-full transition-colors shrink-0" title="Editar este grupo por imprevistos">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 leading-relaxed">
+                        ${actividad}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // --- LÓGICA DEL MODAL DE EDICIÓN ---
+        let diaEditando = null;
+
+        function abrirModal(diffDias, fechaTexto) {
+            diaEditando = diffDias;
+            const modal = document.getElementById('modal-edicion');
+            document.getElementById('modal-fecha-texto').innerText = `Modificando grupo para: ${fechaTexto}`;
+            document.getElementById('error-msg').classList.add('hidden'); // Ocultar mensaje de error
+            
+            const contenedorLista = document.getElementById('lista-personas');
+            contenedorLista.innerHTML = '';
+            
+            let seleccionadosActualmente = asignaciones[diffDias] || [];
+
+            personas.forEach(p => {
+                let isChecked = seleccionadosActualmente.includes(p) ? 'checked' : '';
+                contenedorLista.innerHTML += `
+                    <label class="flex items-center space-x-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                        <input type="checkbox" value="${p}" class="checkbox-persona form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500" ${isChecked}>
+                        <span class="text-sm font-medium text-gray-700">${p}</span>
+                    </label>
+                `;
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal-edicion').classList.add('hidden');
+            diaEditando = null;
+        }
+
+        function guardarEdicion() {
+            const checkboxes = document.querySelectorAll('.checkbox-persona:checked');
+            if (checkboxes.length !== 3) {
+                document.getElementById('error-msg').classList.remove('hidden'); // Mostrar error en la UI
+                return;
+            }
+            
+            let nuevoGrupo = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Guardar el cambio manual permanentemente en el almacenamiento del navegador
+            overrides[diaEditando] = nuevoGrupo;
+            localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
+            
+            cerrarModal();
+            renderizarCronograma(); // Volver a dibujar toda la tabla, el balanceo se hará solo
+        }
+
+        // Inicializar la tabla al cargar la página
+        renderizarCronograma();
+    </script>
+</body>
+</html>
