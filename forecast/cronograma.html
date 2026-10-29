@@ -21,7 +21,7 @@
 <body class="p-4 md:p-8 text-gray-800">
 
     <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-
+        
         <!-- Encabezado de la página -->
         <div class="bg-blue-900 text-white p-6 md:p-10 text-center">
             <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2">Cronograma de Pronósticos</h1>
@@ -31,7 +31,7 @@
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between">
                 <p class="text-gray-600 text-sm md:text-base">
-                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta.
+                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta. El ciclo comienza el <span class="font-bold">26 de Octubre de 2026</span>.
                 </p>
             </div>
 
@@ -69,7 +69,7 @@
                 </table>
             </div>
         </div>
-
+        
     </div>
 
     <!-- Modal para editar grupo -->
@@ -77,7 +77,7 @@
         <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-96 p-6">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Editar Grupo del Día</h2>
             <p id="modal-fecha-texto" class="text-sm text-gray-600 mb-4"></p>
-
+            
             <div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
                 Selecciona <strong>exactamente 3 personas</strong>. El sistema auto-balanceará el cronograma en los días siguientes.
             </div>
@@ -85,7 +85,7 @@
             <div id="lista-personas" class="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-lg">
                 <!-- Checkboxes generados por JS -->
             </div>
-
+            
             <!-- Mensaje de error personalizado en lugar de usar alert() -->
             <p id="error-msg" class="text-red-500 text-xs mt-2 hidden mb-4">Debes seleccionar exactamente a 3 personas.</p>
 
@@ -96,29 +96,122 @@
         </div>
     </div>
 
+    <!-- =========== SCRIPT DE CONFIGURACIÓN =========== -->
     <script>
-        // --- GESTIÓN DE EQUIPO ---
-        // Lista por defecto de integrantes, incluyendo a Alexis. Se guarda en localStorage.
+        window.APP_CONFIG = {
+            "appId": "meteoclima-cronograma",
+            "firebaseConfig": {
+                "apiKey": "AIzaSyCt-F47o7avnEJx6_WuBX0EO845FTiROWo",
+                "authDomain": "meteoclima-lab.firebaseapp.com",
+                "projectId": "meteoclima-lab",
+                "storageBucket": "meteoclima-lab.firebasestorage.app",
+                "messagingSenderId": "482067649301",
+                "appId": "1:482067649301:web:09bde8431e1e0bd9d98f1c",
+                "measurementId": "G-637YJQC8GD"
+            }
+        };
+    </script>
+
+    <!-- =========== SCRIPT PRINCIPAL DE LA APP =========== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. CONFIGURACIÓN DE BASE DE DATOS GLOBAL (NUBE) ---
+        // Leemos la configuración usando el mismo método de la plantilla
+        const appId = (window.APP_CONFIG && window.APP_CONFIG.appId) ? window.APP_CONFIG.appId : (typeof __app_id !== 'undefined' ? __app_id : 'meteoclima-cronograma');
+        
+        let configObj = window.APP_CONFIG ? window.APP_CONFIG.firebaseConfig : null;
+
+        // --- GESTIÓN DE ESTADO ---
         const defaultPersonas = [
-            "Allen", "Brenda", "Genesis", "Yassira", "Angie", "Ashley",
+            "Allen", "Brenda", "Genesis", "Yassira", "Angie", "Ashley", 
             "Lourdes", "Italo", "Diego", "Leonardo", "Maria", "Yerson", "Alexis"
         ];
+        
+        // Cargamos caché local primero para renderizar de inmediato
         let personas = JSON.parse(localStorage.getItem('meteoclima_personas')) || defaultPersonas;
-
-        // Usamos localStorage para guardar los cambios manuales (imprevistos)
         let overrides = JSON.parse(localStorage.getItem('meteoclima_overrides') || '{}');
-        let asignaciones = {}; // Almacena qué grupo toca cada día absoluto
+        let asignaciones = {};
+
+        let db, auth, docRef;
+        let isCloudReady = false;
+
+        // Inicializar Nube
+        if (configObj) {
+            const app = initializeApp(configObj);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            // Ruta global estrictamente requerida
+            docRef = doc(db, 'artifacts', appId, 'public', 'data', 'cronograma_global', 'estado_actual');
+
+            async function initAuth() {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    isCloudReady = true;
+                    listenToCloudData();
+                } catch (error) {
+                    console.error("Error conectando a la Nube:", error);
+                }
+            }
+            initAuth();
+        }
+
+        // Sincronización en tiempo real con todos los dispositivos
+        function listenToCloudData() {
+            if (!auth.currentUser) return;
+            
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.personas) personas = data.personas;
+                    if (data.overrides) overrides = data.overrides;
+                    
+                    // Actualizar caché local
+                    localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
+                    localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
+                    
+                    renderizarListaEquipo();
+                    renderizarCronograma();
+                } else {
+                    // Si el doc no existe en la nube, lo creamos con nuestra info actual
+                    guardarEnNube();
+                }
+            }, (error) => {
+                console.error("Error sincronizando el cronograma global:", error);
+            });
+        }
+
+        async function guardarEnNube() {
+            // Guardado local de respaldo
+            localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
+            localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
+
+            // Guardado global para todos los usuarios
+            if (isCloudReady && auth.currentUser) {
+                try {
+                    await setDoc(docRef, { personas, overrides });
+                } catch (error) {
+                    console.error("Error guardando en la Nube:", error);
+                }
+            }
+            renderizarListaEquipo();
+            renderizarCronograma();
+        }
+
 
         // --- LÓGICA DE SIMULACIÓN Y BALANCEO ---
-        // Para mantener el equilibrio y saber a quién le toca, simulamos desde el día 0 hasta el futuro.
-
-        // Función de ruido determinista para mezclar los grupos equitativamente sin que se repitan siempre los mismos 3
         function pseudoRandom(seedString, day) {
             let hash = 0;
             let str = seedString + day.toString();
             for (let i = 0; i < str.length; i++) {
                 hash = ((hash << 5) - hash) + str.charCodeAt(i);
-                hash |= 0;
+                hash |= 0; 
             }
             let x = Math.sin(hash) * 10000;
             return x - Math.floor(x);
@@ -127,52 +220,36 @@
         function calcularAsignaciones(hastaDia) {
             asignaciones = {};
             let estado = {};
-
-            // Inicializar contadores de las personas
+            
             personas.forEach((p, idx) => {
-                estado[p] = { count: 0, lastWorked: -999, defaultOrder: idx }; // -999 para asegurar que todos estén disponibles el día 0
+                estado[p] = { count: 0, lastWorked: -999, defaultOrder: idx };
             });
 
             for (let d = 0; d <= hastaDia; d++) {
                 if (overrides[d]) {
-                    // Si hubo un imprevisto y se forzó un grupo mediante la UI, se respeta
                     asignaciones[d] = overrides[d];
                 } else {
-                    // 1. Determinar quiénes tienen el menor número de turnos actualmente
                     let minCount = Math.min(...personas.map(p => estado[p].count));
-
-                    // 2. Filtrar candidatos: Deben haber descansado al menos 2 días enteros (diferencia de 3 días)
                     let candidatos = personas.filter(p => (d - estado[p].lastWorked) >= 3);
                     let candidatosMin = candidatos.filter(p => estado[p].count === minCount);
-
-                    // Si no hay suficientes con el mínimo de turnos, ampliamos a los que tienen minCount + 1
+                    
                     if (candidatosMin.length < 3) {
                         candidatos = candidatos.filter(p => estado[p].count <= minCount + 1);
                     } else {
                         candidatos = candidatosMin;
                     }
 
-                    // 3. Mezclamos a los candidatos disponibles
                     candidatos.sort((a, b) => {
-                        // Regla de oro: quien tenga menos turnos globales va primero
                         if (estado[a].count !== estado[b].count) {
                             return estado[a].count - estado[b].count;
                         }
-
-                        // Si empatan en turnos, calculamos un "puntaje de prioridad"
                         let diffA = d - estado[a].lastWorked;
                         let diffB = d - estado[b].lastWorked;
-
-                        // Sumamos los días de descanso + un factor aleatorio determinista.
-                        // Esto hace que a veces alguien con 3 días de descanso reemplace a alguien con 4 días,
-                        // mezclando las agrupaciones constantemente pero manteniendo la justicia de turnos.
                         let scoreA = diffA + (pseudoRandom(a, d) * 2.5);
                         let scoreB = diffB + (pseudoRandom(b, d) * 2.5);
-
-                        return scoreB - scoreA; // Orden descendente (el mayor puntaje pasa al frente)
+                        return scoreB - scoreA;
                     });
-
-                    // Mecanismo de seguridad si el filtro es muy estricto (casi imposible, salvo muchos overrides seguidos)
+                    
                     if (candidatos.length < 3) {
                         let todos = [...personas].sort((a, b) => estado[a].count - estado[b].count);
                         for(let p of todos) {
@@ -180,14 +257,11 @@
                             if(candidatos.length >= 3) break;
                         }
                     }
-
-                    // Tomamos a los 3 primeros mezclados orgánicamente
                     asignaciones[d] = candidatos.slice(0, 3);
                 }
 
-                // Actualizar los contadores de quienes trabajaron en este día "d"
                 asignaciones[d].forEach(p => {
-                    if (estado[p]) { // Protección por si la persona fue eliminada del equipo pero estaba en un override histórico
+                    if (estado[p]) {
                         estado[p].count++;
                         estado[p].lastWorked = d;
                     }
@@ -195,8 +269,8 @@
             }
         }
 
-        // --- FUNCIONES DE EQUIPO (AGREGAR/ELIMINAR) ---
-        function renderizarListaEquipo() {
+        // --- EXPOSICIÓN DE FUNCIONES GLOBALES (Al usar módulo JS) ---
+        window.renderizarListaEquipo = function() {
             const contenedor = document.getElementById('lista-equipo-activa');
             if(!contenedor) return;
             contenedor.innerHTML = '';
@@ -210,7 +284,7 @@
             });
         }
 
-        function agregarPersona() {
+        window.agregarPersona = function() {
             const input = document.getElementById('nueva-persona');
             const nombre = input.value.trim();
             const errorMsg = document.getElementById('team-error');
@@ -224,11 +298,11 @@
 
             errorMsg.classList.add('hidden');
             personas.push(nombre);
-            guardarPersonas();
+            guardarEnNube(); // Reemplaza a guardarPersonas()
             input.value = '';
         }
 
-        function eliminarPersona(nombre) {
+        window.eliminarPersona = function(nombre) {
             const errorMsg = document.getElementById('team-error');
             if (personas.length <= 3) {
                 errorMsg.innerText = "El equipo no puede tener menos de 3 personas para poder rotar.";
@@ -238,52 +312,40 @@
 
             errorMsg.classList.add('hidden');
             personas = personas.filter(p => p !== nombre);
-            guardarPersonas();
+            guardarEnNube(); // Sincroniza eliminación con todo el mundo
         }
 
-        function guardarPersonas() {
-            localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
-            renderizarListaEquipo();
-            renderizarCronograma();
-        }
-
-        // --- LÓGICA DE FECHAS ---
+        // --- LÓGICA DE FECHAS Y TABLA ---
         const fechaInicio = new Date(2026, 9, 26);
         fechaInicio.setHours(0, 0, 0, 0);
         const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
 
-        function renderizarCronograma() {
+        window.renderizarCronograma = function() {
             const tbody = document.getElementById("tabla-body");
-            tbody.innerHTML = ""; // Limpiar tabla
+            tbody.innerHTML = ""; 
 
             let hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
-
-            // Punto de partida de la pantalla
+            
             let fechaArranquePantalla = hoy > fechaInicio ? hoy : fechaInicio;
-
-            // Calcular cuántos días absolutos necesitamos simular para cubrir la pantalla
             let diasSimular = 30;
             let diaAbsolutoFinal = Math.round((new Date(fechaArranquePantalla.getTime() + (diasSimular * 24 * 60 * 60 * 1000)) - fechaInicio) / (1000 * 60 * 60 * 24));
-
-            // Computar todo el historial desde el día 0 (26 de Oct) hasta el día final necesario
+            
             calcularAsignaciones(Math.max(diaAbsolutoFinal, 0));
 
             for (let i = 0; i < diasSimular; i++) {
                 let fechaActual = new Date(fechaArranquePantalla);
                 fechaActual.setDate(fechaActual.getDate() + i);
-
+                
                 let diffTiempo = fechaActual - fechaInicio;
                 let diffDias = Math.round(diffTiempo / (1000 * 60 * 60 * 24));
-
-                // Evitar dibujar fechas anteriores al inicio
+                
                 if (diffDias < 0) continue;
 
                 let grupoHoy = asignaciones[diffDias];
                 let integrantesStr = grupoHoy.join(", ");
-                // Etiqueta visual para indicar si un turno fue alterado manualmente
                 let modificadoHTML = overrides[diffDias] ? `<span class="ml-2 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full" title="Grupo editado manualmente por un imprevisto">Editado</span>` : '';
-
+                
                 let actividad = "";
                 let fechaSiguiente = new Date(fechaActual);
                 fechaSiguiente.setDate(fechaSiguiente.getDate() + 1);
@@ -297,7 +359,7 @@
                 } else {
                     let grupoVerificar = asignaciones[diffDias - 2];
                     let nombresVerificar = grupoVerificar ? grupoVerificar.join(", ") : "No disponible";
-
+                    
                     actividad = `
                         <span class="font-semibold text-red-600">1. Verifica:</span> El pronóstico hecho hace 2 días por: <strong>${nombresVerificar}</strong>.<br>
                         <span class="font-semibold text-green-700">2. Pronostica:</span> Elabora y publica el ${diaActualNombre} el pronóstico válido para el <strong>${diaSig}</strong>.
@@ -337,15 +399,15 @@
         // --- LÓGICA DEL MODAL DE EDICIÓN ---
         let diaEditando = null;
 
-        function abrirModal(diffDias, fechaTexto) {
+        window.abrirModal = function(diffDias, fechaTexto) {
             diaEditando = diffDias;
             const modal = document.getElementById('modal-edicion');
             document.getElementById('modal-fecha-texto').innerText = `Modificando grupo para: ${fechaTexto}`;
-            document.getElementById('error-msg').classList.add('hidden'); // Ocultar mensaje de error
-
+            document.getElementById('error-msg').classList.add('hidden'); 
+            
             const contenedorLista = document.getElementById('lista-personas');
             contenedorLista.innerHTML = '';
-
+            
             let seleccionadosActualmente = asignaciones[diffDias] || [];
 
             personas.forEach(p => {
@@ -361,31 +423,28 @@
             modal.classList.remove('hidden');
         }
 
-        function cerrarModal() {
+        window.cerrarModal = function() {
             document.getElementById('modal-edicion').classList.add('hidden');
             diaEditando = null;
         }
 
-        function guardarEdicion() {
+        window.guardarEdicion = function() {
             const checkboxes = document.querySelectorAll('.checkbox-persona:checked');
             if (checkboxes.length !== 3) {
-                document.getElementById('error-msg').classList.remove('hidden'); // Mostrar error en la UI
+                document.getElementById('error-msg').classList.remove('hidden');
                 return;
             }
-
+            
             let nuevoGrupo = Array.from(checkboxes).map(cb => cb.value);
-
-            // Guardar el cambio manual permanentemente en el almacenamiento del navegador
+            
             overrides[diaEditando] = nuevoGrupo;
-            localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
-
+            guardarEnNube(); // Guarda para todo el mundo
             cerrarModal();
-            renderizarCronograma(); // Volver a dibujar toda la tabla, el balanceo se hará solo
         }
 
-        // Inicializar la tabla y el equipo al cargar la página
-        renderizarListaEquipo();
-        renderizarCronograma();
+        // Inicialización primaria (con caché local)
+        window.renderizarListaEquipo();
+        window.renderizarCronograma();
     </script>
 </body>
 </html>
