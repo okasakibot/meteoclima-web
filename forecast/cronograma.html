@@ -31,8 +31,26 @@
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between">
                 <p class="text-gray-600 text-sm md:text-base">
-                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta. El ciclo comienza el <span class="font-bold">26 de Octubre de 2026</span>.
+                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta.
                 </p>
+            </div>
+
+            <!-- Sección de gestión de equipo -->
+            <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('team-management').classList.toggle('hidden')">
+                    <h2 class="text-base font-bold text-gray-700">👥 Gestión de Miembros del Equipo</h2>
+                    <span class="text-gray-500 text-sm">Ver / Editar ▼</span>
+                </div>
+                <div id="team-management" class="hidden mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex flex-col md:flex-row gap-2 mb-4">
+                        <input type="text" id="nueva-persona" placeholder="Nombre del nuevo integrante" class="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <button onclick="agregarPersona()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium transition-colors">Agregar Miembro</button>
+                    </div>
+                    <p id="team-error" class="text-red-500 text-xs hidden mb-3"></p>
+                    <div id="lista-equipo-activa" class="flex flex-wrap gap-2">
+                        <!-- Etiquetas de personas generadas por JS -->
+                    </div>
+                </div>
             </div>
 
             <!-- Contenedor responsivo para la tabla -->
@@ -79,11 +97,13 @@
     </div>
 
     <script>
-        // Lista original de 12 integrantes
-        const personas = [
+        // --- GESTIÓN DE EQUIPO ---
+        // Lista por defecto de integrantes, incluyendo a Alexis. Se guarda en localStorage.
+        const defaultPersonas = [
             "Allen", "Brenda", "Genesis", "Yassira", "Angie", "Ashley",
-            "Lourdes", "Italo", "Diego", "Leonardo", "Maria", "Yerson"
+            "Lourdes", "Italo", "Diego", "Leonardo", "Maria", "Yerson", "Alexis"
         ];
+        let personas = JSON.parse(localStorage.getItem('meteoclima_personas')) || defaultPersonas;
 
         // Usamos localStorage para guardar los cambios manuales (imprevistos)
         let overrides = JSON.parse(localStorage.getItem('meteoclima_overrides') || '{}');
@@ -167,10 +187,64 @@
 
                 // Actualizar los contadores de quienes trabajaron en este día "d"
                 asignaciones[d].forEach(p => {
-                    estado[p].count++;
-                    estado[p].lastWorked = d;
+                    if (estado[p]) { // Protección por si la persona fue eliminada del equipo pero estaba en un override histórico
+                        estado[p].count++;
+                        estado[p].lastWorked = d;
+                    }
                 });
             }
+        }
+
+        // --- FUNCIONES DE EQUIPO (AGREGAR/ELIMINAR) ---
+        function renderizarListaEquipo() {
+            const contenedor = document.getElementById('lista-equipo-activa');
+            if(!contenedor) return;
+            contenedor.innerHTML = '';
+            personas.forEach(p => {
+                contenedor.innerHTML += `
+                    <div class="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm shadow-sm">
+                        <span class="font-medium mr-2">${p}</span>
+                        <button onclick="eliminarPersona('${p}')" class="text-blue-400 hover:text-red-600 font-bold ml-1 px-1 rounded hover:bg-blue-200 transition-colors" title="Eliminar a ${p}">×</button>
+                    </div>
+                `;
+            });
+        }
+
+        function agregarPersona() {
+            const input = document.getElementById('nueva-persona');
+            const nombre = input.value.trim();
+            const errorMsg = document.getElementById('team-error');
+
+            if (!nombre) return;
+            if (personas.some(p => p.toLowerCase() === nombre.toLowerCase())) {
+                errorMsg.innerText = "Esta persona ya está en el equipo.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            personas.push(nombre);
+            guardarPersonas();
+            input.value = '';
+        }
+
+        function eliminarPersona(nombre) {
+            const errorMsg = document.getElementById('team-error');
+            if (personas.length <= 3) {
+                errorMsg.innerText = "El equipo no puede tener menos de 3 personas para poder rotar.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            personas = personas.filter(p => p !== nombre);
+            guardarPersonas();
+        }
+
+        function guardarPersonas() {
+            localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
+            renderizarListaEquipo();
+            renderizarCronograma();
         }
 
         // --- LÓGICA DE FECHAS ---
@@ -309,7 +383,8 @@
             renderizarCronograma(); // Volver a dibujar toda la tabla, el balanceo se hará solo
         }
 
-        // Inicializar la tabla al cargar la página
+        // Inicializar la tabla y el equipo al cargar la página
+        renderizarListaEquipo();
         renderizarCronograma();
     </script>
 </body>
