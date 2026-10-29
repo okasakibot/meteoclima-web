@@ -218,56 +218,61 @@
         }
 
         function calcularAsignaciones(hastaDia) {
-            asignaciones = {};
-            let estado = {};
+                    asignaciones = {};
+                    let estado = {};
 
-            personas.forEach((p, idx) => {
-                estado[p] = { count: 0, lastWorked: -999, defaultOrder: idx };
-            });
-
-            for (let d = 0; d <= hastaDia; d++) {
-                if (overrides[d]) {
-                    asignaciones[d] = overrides[d];
-                } else {
-                    let minCount = Math.min(...personas.map(p => estado[p].count));
-                    let candidatos = personas.filter(p => (d - estado[p].lastWorked) >= 3);
-                    let candidatosMin = candidatos.filter(p => estado[p].count === minCount);
-
-                    if (candidatosMin.length < 3) {
-                        candidatos = candidatos.filter(p => estado[p].count <= minCount + 1);
-                    } else {
-                        candidatos = candidatosMin;
-                    }
-
-                    candidatos.sort((a, b) => {
-                        if (estado[a].count !== estado[b].count) {
-                            return estado[a].count - estado[b].count;
-                        }
-                        let diffA = d - estado[a].lastWorked;
-                        let diffB = d - estado[b].lastWorked;
-                        let scoreA = diffA + (pseudoRandom(a, d) * 2.5);
-                        let scoreB = diffB + (pseudoRandom(b, d) * 2.5);
-                        return scoreB - scoreA;
+                    // Inicializar contadores para garantizar equidad desde el día 0
+                    personas.forEach((p, idx) => {
+                        estado[p] = { count: 0, lastWorked: -999 };
                     });
 
-                    if (candidatos.length < 3) {
-                        let todos = [...personas].sort((a, b) => estado[a].count - estado[b].count);
-                        for(let p of todos) {
-                            if(!candidatos.includes(p)) candidatos.push(p);
-                            if(candidatos.length >= 3) break;
-                        }
-                    }
-                    asignaciones[d] = candidatos.slice(0, 3);
-                }
+                    for (let d = 0; d <= hastaDia; d++) {
+                        if (overrides[d]) {
+                            // Si el usuario editó este día, respetamos su decisión estrictamente
+                            asignaciones[d] = overrides[d];
+                        } else {
+                            // 1. FILTRAR: Exigir un descanso mínimo (evita que repitan inmediatamente)
+                            // Exigimos que hayan pasado al menos 3 días desde su último turno
+                            let candidatos = personas.filter(p => (d - estado[p].lastWorked) >= 3);
 
-                asignaciones[d].forEach(p => {
-                    if (estado[p]) {
-                        estado[p].count++;
-                        estado[p].lastWorked = d;
+                            // Fallback de seguridad: si eliminaste muchos miembros y quedan pocos,
+                            // al menos exigimos que no hayan trabajado ayer
+                            if (candidatos.length < 3) {
+                                candidatos = personas.filter(p => (d - estado[p].lastWorked) > 1);
+                            }
+
+                            // 2. ORDENAR: Equidad > Descanso > Mezcla
+                            candidatos.sort((a, b) => {
+                                // Prioridad 1 (Equidad): Quien tiene menos turnos en el historial va primero
+                                if (estado[a].count !== estado[b].count) {
+                                    return estado[a].count - estado[b].count;
+                                }
+
+                                // Prioridad 2 (Descanso): Si tienen los mismos turnos, prioriza al que lleva más tiempo sin trabajar
+                                let descansoA = d - estado[a].lastWorked;
+                                let descansoB = d - estado[b].lastWorked;
+                                if (descansoA !== descansoB) {
+                                    return descansoB - descansoA;
+                                }
+
+                                // Prioridad 3 (Mezcla): Ruido aleatorio determinista para que los integrantes varíen y no sean siempre los mismos 3
+                                return pseudoRandom(b, d) - pseudoRandom(a, d);
+                            });
+
+                            // 3. Seleccionar a los 3 mejores candidatos
+                            asignaciones[d] = candidatos.slice(0, 3);
+                        }
+
+                        // 4. ACTUALIZAR ESTADO: Registrar a los que trabajaron hoy (sea automático o editado)
+                        // Esto es vital: si haces una edición manual, el algoritmo suma +1 a sus turnos y reinicia su tiempo de descanso, balanceando el resto del mes automáticamente.
+                        asignaciones[d].forEach(p => {
+                            if (estado[p]) {
+                                estado[p].count++;
+                                estado[p].lastWorked = d;
+                            }
+                        });
                     }
-                });
-            }
-        }
+                }
 
         // --- EXPOSICIÓN DE FUNCIONES GLOBALES (Al usar módulo JS) ---
         window.renderizarListaEquipo = function() {
