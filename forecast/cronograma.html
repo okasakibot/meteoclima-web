@@ -147,18 +147,21 @@
             docRef = doc(db, 'artifacts', appId, 'public', 'data', 'cronograma_global', 'estado_actual');
 
             async function initAuth() {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                    isCloudReady = true;
-                    listenToCloudData();
-                } catch (error) {
-                    console.error("Error conectando a la Nube:", error);
-                }
-            }
+                            try {
+                                if (typeof __initial_auth_token !== 'undefined') {
+                                    await signInWithCustomToken(auth, __initial_auth_token);
+                                } else {
+                                    await signInAnonymously(auth);
+                                }
+                                isCloudReady = true;
+                                listenToCloudData();
+                            } catch (error) {
+                                console.error("Error conectando a la Nube:", error);
+                                // FALLBACK: Si no hay internet o falla la nube, mostramos el caché local
+                                window.renderizarListaEquipo();
+                                window.renderizarCronograma();
+                            }
+                        }
             initAuth();
         }
 
@@ -447,9 +450,19 @@
             cerrarModal();
         }
 
-        // Inicialización primaria (con caché local)
-        window.renderizarListaEquipo();
-        window.renderizarCronograma();
+// --- INICIALIZACIÓN PRIMARIA ---
+        // Mostramos un estado de "Cargando" animado mientras esperamos a la nube.
+        document.getElementById('lista-equipo-activa').innerHTML = `
+            <span class="text-gray-500 text-sm italic animate-pulse">Cargando equipo...</span>
+        `;
+
+        document.getElementById("tabla-body").innerHTML = `
+            <tr>
+                <td colspan="3" class="px-6 py-12 text-center text-gray-500 text-base font-medium animate-pulse bg-gray-50">
+                    ⏳ Sincronizando cronograma con la nube...
+                </td>
+            </tr>
+        `;
     </script>
 </body>
 </html>
