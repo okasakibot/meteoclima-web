@@ -21,7 +21,7 @@
 <body class="p-4 md:p-8 text-gray-800">
 
     <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-        
+
         <!-- Encabezado de la página -->
         <div class="bg-blue-900 text-white p-6 md:p-10 text-center">
             <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2">Cronograma de Pronósticos</h1>
@@ -31,7 +31,7 @@
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between">
                 <p class="text-gray-600 text-sm md:text-base">
-                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta. El ciclo comienza el <span class="font-bold">26 de Octubre de 2026</span>.
+                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta.
                 </p>
             </div>
 
@@ -69,7 +69,7 @@
                 </table>
             </div>
         </div>
-        
+
     </div>
 
     <!-- Modal para editar grupo -->
@@ -77,7 +77,7 @@
         <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-96 p-6">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Editar Grupo del Día</h2>
             <p id="modal-fecha-texto" class="text-sm text-gray-600 mb-4"></p>
-            
+
             <div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
                 Selecciona <strong>exactamente 3 personas</strong>. El sistema auto-balanceará el cronograma en los días siguientes.
             </div>
@@ -85,7 +85,7 @@
             <div id="lista-personas" class="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-lg">
                 <!-- Checkboxes generados por JS -->
             </div>
-            
+
             <!-- Mensaje de error personalizado en lugar de usar alert() -->
             <p id="error-msg" class="text-red-500 text-xs mt-2 hidden mb-4">Debes seleccionar exactamente a 3 personas.</p>
 
@@ -121,15 +121,15 @@
         // --- 1. CONFIGURACIÓN DE BASE DE DATOS GLOBAL (NUBE) ---
         // Leemos la configuración usando el mismo método de la plantilla
         const appId = (window.APP_CONFIG && window.APP_CONFIG.appId) ? window.APP_CONFIG.appId : (typeof __app_id !== 'undefined' ? __app_id : 'meteoclima-cronograma');
-        
+
         let configObj = window.APP_CONFIG ? window.APP_CONFIG.firebaseConfig : null;
 
         // --- GESTIÓN DE ESTADO ---
         const defaultPersonas = [
-            "Allen", "Brenda", "Genesis", "Yassira", "Angie", "Ashley", 
+            "Allen", "Brenda", "Genesis", "Yassira", "Angie", "Ashley",
             "Lourdes", "Italo", "Diego", "Leonardo", "Maria", "Yerson", "Alexis"
         ];
-        
+
         // Cargamos caché local primero para renderizar de inmediato
         let personas = JSON.parse(localStorage.getItem('meteoclima_personas')) || defaultPersonas;
         let overrides = JSON.parse(localStorage.getItem('meteoclima_overrides') || '{}');
@@ -165,17 +165,17 @@
         // Sincronización en tiempo real con todos los dispositivos
         function listenToCloudData() {
             if (!auth.currentUser) return;
-            
+
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.personas) personas = data.personas;
                     if (data.overrides) overrides = data.overrides;
-                    
+
                     // Actualizar caché local
                     localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
                     localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
-                    
+
                     renderizarListaEquipo();
                     renderizarCronograma();
                 } else {
@@ -211,7 +211,7 @@
             let str = seedString + day.toString();
             for (let i = 0; i < str.length; i++) {
                 hash = ((hash << 5) - hash) + str.charCodeAt(i);
-                hash |= 0; 
+                hash |= 0;
             }
             let x = Math.sin(hash) * 10000;
             return x - Math.floor(x);
@@ -220,7 +220,7 @@
         function calcularAsignaciones(hastaDia) {
             asignaciones = {};
             let estado = {};
-            
+
             personas.forEach((p, idx) => {
                 estado[p] = { count: 0, lastWorked: -999, defaultOrder: idx };
             });
@@ -232,7 +232,7 @@
                     let minCount = Math.min(...personas.map(p => estado[p].count));
                     let candidatos = personas.filter(p => (d - estado[p].lastWorked) >= 3);
                     let candidatosMin = candidatos.filter(p => estado[p].count === minCount);
-                    
+
                     if (candidatosMin.length < 3) {
                         candidatos = candidatos.filter(p => estado[p].count <= minCount + 1);
                     } else {
@@ -249,7 +249,7 @@
                         let scoreB = diffB + (pseudoRandom(b, d) * 2.5);
                         return scoreB - scoreA;
                     });
-                    
+
                     if (candidatos.length < 3) {
                         let todos = [...personas].sort((a, b) => estado[a].count - estado[b].count);
                         for(let p of todos) {
@@ -322,30 +322,30 @@
 
         window.renderizarCronograma = function() {
             const tbody = document.getElementById("tabla-body");
-            tbody.innerHTML = ""; 
+            tbody.innerHTML = "";
 
             let hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
-            
+
             let fechaArranquePantalla = hoy > fechaInicio ? hoy : fechaInicio;
             let diasSimular = 30;
             let diaAbsolutoFinal = Math.round((new Date(fechaArranquePantalla.getTime() + (diasSimular * 24 * 60 * 60 * 1000)) - fechaInicio) / (1000 * 60 * 60 * 24));
-            
+
             calcularAsignaciones(Math.max(diaAbsolutoFinal, 0));
 
             for (let i = 0; i < diasSimular; i++) {
                 let fechaActual = new Date(fechaArranquePantalla);
                 fechaActual.setDate(fechaActual.getDate() + i);
-                
+
                 let diffTiempo = fechaActual - fechaInicio;
                 let diffDias = Math.round(diffTiempo / (1000 * 60 * 60 * 24));
-                
+
                 if (diffDias < 0) continue;
 
                 let grupoHoy = asignaciones[diffDias];
                 let integrantesStr = grupoHoy.join(", ");
                 let modificadoHTML = overrides[diffDias] ? `<span class="ml-2 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full" title="Grupo editado manualmente por un imprevisto">Editado</span>` : '';
-                
+
                 let actividad = "";
                 let fechaSiguiente = new Date(fechaActual);
                 fechaSiguiente.setDate(fechaSiguiente.getDate() + 1);
@@ -359,7 +359,7 @@
                 } else {
                     let grupoVerificar = asignaciones[diffDias - 2];
                     let nombresVerificar = grupoVerificar ? grupoVerificar.join(", ") : "No disponible";
-                    
+
                     actividad = `
                         <span class="font-semibold text-red-600">1. Verifica:</span> El pronóstico hecho hace 2 días por: <strong>${nombresVerificar}</strong>.<br>
                         <span class="font-semibold text-green-700">2. Pronostica:</span> Elabora y publica el ${diaActualNombre} el pronóstico válido para el <strong>${diaSig}</strong>.
@@ -403,11 +403,11 @@
             diaEditando = diffDias;
             const modal = document.getElementById('modal-edicion');
             document.getElementById('modal-fecha-texto').innerText = `Modificando grupo para: ${fechaTexto}`;
-            document.getElementById('error-msg').classList.add('hidden'); 
-            
+            document.getElementById('error-msg').classList.add('hidden');
+
             const contenedorLista = document.getElementById('lista-personas');
             contenedorLista.innerHTML = '';
-            
+
             let seleccionadosActualmente = asignaciones[diffDias] || [];
 
             personas.forEach(p => {
@@ -434,9 +434,9 @@
                 document.getElementById('error-msg').classList.remove('hidden');
                 return;
             }
-            
+
             let nuevoGrupo = Array.from(checkboxes).map(cb => cb.value);
-            
+
             overrides[diaEditando] = nuevoGrupo;
             guardarEnNube(); // Guarda para todo el mundo
             cerrarModal();
