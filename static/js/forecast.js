@@ -491,11 +491,21 @@ function renderizarViento(uArray, vArray) {
 }
 
 function renderizarCalor(dataArray, variable) {
+    // 1. Fórmulas de proyección a Web Mercator
+    function latToMercY(lat) { return Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 180 / 2)); }
+    function mercYToLat(y) { return (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * (180 / Math.PI); }
+    let mercN = latToMercY(latNorteBorde);
+    let mercS = latToMercY(latSurBorde);
+
+    // 2. Definición del tamaño del Canvas (Aumentado para mayor resolución)
+    const factorSubpixel = 2;
+    const cw = width * factorSubpixel;
+    const ch = height * factorSubpixel;
+
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = cw; canvas.height = ch;
     const ctx = canvas.getContext('2d');
-    const imgData = ctx.createImageData(width, height);
+    const imgData = ctx.createImageData(cw, ch);
 
     let min = 0, max = 100;
     if (escalas[variable]) {
@@ -522,19 +532,36 @@ function renderizarCalor(dataArray, variable) {
         else cbGradient.style.background = 'linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)';
     }
 
+    // 3. Función de interpolación Bilineal para suavizar datos
+    function getBilinear(array, yFloat, xFloat, gridW, gridH) {
+        let y0 = Math.floor(yFloat); let x0 = Math.floor(xFloat);
+        let y1 = Math.min(y0 + 1, gridH - 1); let x1 = Math.min(x0 + 1, gridW - 1);
+        if (y0 < 0 || y0 >= gridH || x0 < 0 || x0 >= gridW) return null;
+        let v00 = array[y0 * gridW + x0]; let v10 = array[y0 * gridW + x1];
+        let v01 = array[y1 * gridW + x0]; let v11 = array[y1 * gridW + x1];
+        if (v00 === null || isNaN(v00) || v00 > 1e20 || v00 < -1e20) return null;
+        if (v10 === null || isNaN(v10) || v10 > 1e20 || v10 < -1e20) return null;
+        if (v01 === null || isNaN(v01) || v01 > 1e20 || v01 < -1e20) return null;
+        if (v11 === null || isNaN(v11) || v11 > 1e20 || v11 < -1e20) return null;
+        let fy = yFloat - y0; let fx = xFloat - x0;
+        let top = v00 * (1 - fx) + v10 * fx; let bot = v01 * (1 - fx) + v11 * fx;
+        return top * (1 - fy) + bot * fy;
+    }
+
+    // 4. Bucle principal de Renderizado (Usando proyecciones)
     let pixelIndex = 0;
+    for(let cy = 0; cy < ch; cy++) {
+        let currentMercY = mercN - (cy / (ch - 1)) * (mercN - mercS);
+        let zarrYFloat = (mercYToLat(currentMercY) - latInicio) / dy;
 
-    // Canvas pinta de "Arriba hacia Abajo".
-    // Para que coincida con Leaflet, iteramos el array leyendo desde el Norte (height-1) hacia el Sur (0)
-    for(let y = height - 1; y >= 0; y--) {
-        for(let x = 0; x < width; x++) {
-
-            // zarrIndex ubica el pixel real extraído.
-            let zarrIndex = y * width + x;
-            let val = dataArray[zarrIndex];
+        for(let cx = 0; cx < cw; cx++) {
+            let zarrXFloat = ((lonOesteBorde + (cx / (cw - 1)) * (lonEsteBorde - lonOesteBorde)) - lonInicio) / dx;
             let cIdx = pixelIndex * 4;
 
-            if (val === null || isNaN(val) || !isFinite(val) || val > 1e20 || val < -1e20) {
+            // Usar getBilinear en lugar de indexación directa
+            let val = getBilinear(dataArray, zarrYFloat, zarrXFloat, width, height);
+
+            if (val === null) {
                 imgData.data[cIdx+3] = 0; // Transparente si es NaN
             } else {
                 let norm = Math.max(0, Math.min(1, (val - min) / (max - min)));
@@ -597,10 +624,10 @@ function renderizarCalor(dataArray, variable) {
             pixelIndex++;
         }
     }
+
     ctx.putImageData(imgData, 0, 0);
     if(heatLayer) map.removeLayer(heatLayer);
 
-    // Al alinear la inversión Y arriba, el overlay calza milimétricamente con limitesData.
     heatLayer = L.imageOverlay(canvas.toDataURL(), limitesData, { opacity: opacidadGlobal, className: 'smooth-layer', pane: 'heatPane' }).addTo(map);
 }
 
