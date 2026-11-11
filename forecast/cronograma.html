@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma Meteoclima</title>
+    <link rel="icon" type="image/svg+xml" href="../static/img/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .fila-hoy {
+            background-color: #fef3c7 !important; /* Amarillo suave para resaltar el día actual */
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-gray-800">
+
+    <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+
+        <!-- Encabezado de la página -->
+        <div class="bg-blue-900 text-white p-6 md:p-10 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2">Cronograma de Pronósticos</h1>
+            <p class="text-blue-200 text-lg">Meteoclima - Actualización Automática a 30 Días</p>
+        </div>
+
+        <div class="p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <p class="text-gray-600 text-sm md:text-base">
+                    Este cronograma se adapta y balancea automáticamente. Si editas un grupo por imprevistos, los turnos futuros se recalcularán para que nadie trabaje más de la cuenta.
+                </p>
+            </div>
+
+            <!-- Sección de gestión de equipo -->
+            <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('team-management').classList.toggle('hidden')">
+                    <h2 class="text-base font-bold text-gray-700">👥 Gestión de Miembros del Equipo</h2>
+                    <span class="text-gray-500 text-sm">Ver / Editar ▼</span>
+                </div>
+                <div id="team-management" class="hidden mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex flex-col md:flex-row gap-2 mb-4">
+                        <input type="text" id="nueva-persona" placeholder="Nombre del nuevo integrante" class="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <button onclick="agregarPersona()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium transition-colors">Agregar Miembro</button>
+                    </div>
+                    <p id="team-error" class="text-red-500 text-xs hidden mb-3"></p>
+                    <div id="lista-equipo-activa" class="flex flex-wrap gap-2">
+                        <!-- Etiquetas de personas generadas por JS -->
+                    </div>
+                </div>
+            </div>
+
+           <!-- Botón de emergencia -->
+            <div class="mb-6 flex justify-end">
+                <button onclick="forzarRebalanceo()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium shadow-sm transition-colors text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Corregir Grupos Aleatoriamente
+                </button>
+            </div>
+
+            <!-- Contenedor responsivo para la tabla -->
+            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Grupo Responsable</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actividad y Verificación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Las filas se generarán por JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal para editar grupo -->
+    <div id="modal-edicion" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Editar Turnos del Día</h2>
+            <p id="modal-fecha-texto" class="text-sm text-gray-600 mb-4"></p>
+
+            <div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
+                Asigna a los miembros disponibles para suplir el contratiempo. <strong>Una persona no puede estar en dos tareas distintas el mismo día.</strong>
+            </div>
+
+            <!-- Contenedor dinámico donde se crearán los desplegables según el día -->
+            <div id="modal-content-dinamico" class="space-y-4">
+                <!-- Selects generados por JS -->
+            </div>
+
+            <p id="error-msg" class="text-red-500 text-sm mt-4 hidden font-medium"></p>
+
+            <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                <button onclick="cerrarModal()" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
+                <button onclick="guardarEdicion()" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-colors">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========== SCRIPT DE CONFIGURACIÓN =========== -->
+    <script>
+        window.APP_CONFIG = {
+            "appId": "meteoclima-cronograma",
+            "firebaseConfig": {
+                "apiKey": "AIzaSyCt-F47o7avnEJx6_WuBX0EO845FTiROWo",
+                "authDomain": "meteoclima-lab.firebaseapp.com",
+                "projectId": "meteoclima-lab",
+                "storageBucket": "meteoclima-lab.firebasestorage.app",
+                "messagingSenderId": "482067649301",
+                "appId": "1:482067649301:web:09bde8431e1e0bd9d98f1c",
+                "measurementId": "G-637YJQC8GD"
+            }
+        };
+    </script>
+
+    <!-- =========== SCRIPT PRINCIPAL DE LA APP =========== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. CONFIGURACIÓN DE BASE DE DATOS GLOBAL (NUBE) ---
+        // Leemos la configuración usando el mismo método de la plantilla
+        const appId = (window.APP_CONFIG && window.APP_CONFIG.appId) ? window.APP_CONFIG.appId : (typeof __app_id !== 'undefined' ? __app_id : 'meteoclima-cronograma');
+
+        let configObj = window.APP_CONFIG ? window.APP_CONFIG.firebaseConfig : null;
+
+        // --- GESTIÓN DE ESTADO ---
+        const defaultPersonas = [
+            "Allen", "Brenda", "Genesis", "Yassira", "Angie", "Ashley", "Valeria",
+            "Lourdes", "Italo", "Diego", "Leonardo", "Maria", "Yerson", "Alexis",
+        ];
+
+        // Cargamos caché local primero para renderizar de inmediato
+        let personas = JSON.parse(localStorage.getItem('meteoclima_personas')) || defaultPersonas;
+        let overrides = JSON.parse(localStorage.getItem('meteoclima_overrides') || '{}');
+        let randomSeedOffset = parseInt(localStorage.getItem('meteoclima_seed')) || 0;
+        let asignaciones = {};
+
+        let db, auth, docRef;
+        let isCloudReady = false;
+
+        // Inicializar Nube
+        if (configObj) {
+            const app = initializeApp(configObj);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            docRef = doc(db, 'artifacts', appId, 'public', 'data', 'cronograma_global', 'estado_actual');
+
+            /* --- BLOQUE COMENTADO PARA EVITAR CONFLICTO ENTRE PESTAÑAS ---
+            setPersistence(auth, browserLocalPersistence).then(() => {
+                onAuthStateChanged(auth, (user) => { ... });
+            });
+            -------------------------------------------------------------- */
+
+            // Usamos el observador nativo de caché para lectura no destructiva
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // El usuario TIENE CACHÉ, iniciamos la sincronización
+                    isCloudReady = true;
+                    listenToCloudData();
+                } else {
+                    // NO TIENE CACHÉ -> Redirección silenciosa e inmediata
+                    window.location.replace("index.html");
+                }
+            });
+        }
+
+        // Sincronización en tiempo real con todos los dispositivos
+        function listenToCloudData() {
+            if (!auth.currentUser) return;
+
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.personas) personas = data.personas;
+                    if (data.overrides) overrides = data.overrides;
+                    if (data.randomSeed !== undefined) randomSeedOffset = data.randomSeed;
+
+                    // Actualizar caché local
+                    localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
+                    localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
+                    localStorage.setItem('meteoclima_seed', randomSeedOffset.toString());
+
+                    renderizarListaEquipo();
+                    renderizarCronograma();
+                } else {
+                    guardarEnNube();
+                }
+            }, (error) => {
+                console.error("Error sincronizando el cronograma global:", error);
+            });
+        }
+
+        async function guardarEnNube() {
+            // Guardado local de respaldo
+            localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
+            localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
+            localStorage.setItem('meteoclima_seed', randomSeedOffset.toString());
+
+            // Guardado global para todos los usuarios
+            if (isCloudReady && auth.currentUser) {
+                try {
+                    await setDoc(docRef, { personas, overrides, randomSeed: randomSeedOffset });
+                } catch (error) {
+                    console.error("Error guardando en la Nube:", error);
+                }
+            }
+            renderizarListaEquipo();
+            renderizarCronograma();
+        }
+
+
+        // --- LÓGICA DE SIMULACIÓN Y BALANCEO ---
+
+        // Función pseudo-aleatoria avanzada para desempates justos pero estables
+        function hashString(str, seed, day) {
+            let h = 0xdeadbeef;
+            let s = str + seed + day;
+            for(let i = 0; i < s.length; i++)
+                h = Math.imul(h ^ s.charCodeAt(i), 2654435761);
+            return (h ^ h >>> 16);
+        }
+
+        function calcularAsignaciones(hastaDia) {
+            asignaciones = {};
+            let estado = {};
+
+            // Inicializar estado con contadores específicos por tarea
+            personas.forEach(p => {
+                estado[p] = {
+                    count: 0,
+                    lastWorked: -999,
+                    roles: { informes: 0, verificacion: 0, pronostico: 0, video: 0 }
+                };
+            });
+
+            // Función auxiliar para elegir N personas balanceadas
+            function pickPeople(n, day, rolName, excludeList = [], forceInclude = []) {
+                let picked = [...forceInclude];
+                let candidatos = personas.filter(p => !excludeList.includes(p) && !picked.includes(p));
+
+                // Obtener quiénes trabajaron AYER para penalizarlos hoy
+                let trabajadoresAyer = [];
+                if (day > 0 && asignaciones[day - 1]) {
+                    let a = asignaciones[day - 1];
+                    if (a.informes) trabajadoresAyer.push(...a.informes);
+                    if (a.verificacion) trabajadoresAyer.push(...a.verificacion);
+                    if (a.pronostico) trabajadoresAyer.push(...a.pronostico);
+                    if (a.video) trabajadoresAyer.push(...a.video);
+                }
+
+                candidatos.sort((a, b) => {
+                    // 1. Evitar trabajar días consecutivos
+                    let aAyer = trabajadoresAyer.includes(a) ? 1 : 0;
+                    let bAyer = trabajadoresAyer.includes(b) ? 1 : 0;
+                    if (aAyer !== bAyer) return aAyer - bAyer;
+
+                    // 2. Rotación de Tareas (Evita que repitan el mismo rol que ya hicieron mucho)
+                    let aRol = estado[a].roles[rolName];
+                    let bRol = estado[b].roles[rolName];
+                    if (aRol !== bRol) return aRol - bRol;
+
+                    // 3. Equidad global de turnos (quien trabajó menos, va primero)
+                    if (estado[a].count !== estado[b].count) return estado[a].count - estado[b].count;
+
+                    // 4. Descanso (quien descansó más días, va primero)
+                    let descansoA = day - estado[a].lastWorked;
+                    let descansoB = day - estado[b].lastWorked;
+                    if (descansoA !== descansoB) return descansoB - descansoA;
+
+                    // 5. Desempate pseudo-aleatorio de alta dispersión (responde al botón de Rebalanceo)
+                    return hashString(a, randomSeedOffset, day) - hashString(b, randomSeedOffset, day);
+                });
+
+                // Llenar el grupo
+                while(picked.length < n && candidatos.length > 0) {
+                    picked.push(candidatos.shift());
+                }
+
+                // Fallback (por si el equipo es reducido)
+                if (picked.length < n) {
+                    let fallback = personas.filter(p => !picked.includes(p));
+                    fallback.sort((a, b) => (day - estado[b].lastWorked) - (day - estado[a].lastWorked));
+                    while(picked.length < n && fallback.length > 0) {
+                        picked.push(fallback.shift());
+                    }
+                }
+
+                // Actualizar contadores
+                picked.forEach(p => {
+                    if (estado[p]) {
+                        estado[p].count++;
+                        estado[p].lastWorked = day;
+                        estado[p].roles[rolName]++;
+                    }
+                });
+                return picked;
+            }
+
+            for (let d = 0; d <= hastaDia; d++) {
+                if (overrides[d]) {
+                    asignaciones[d] = overrides[d];
+
+                    // Actualizar contadores basados en la edición manual
+                    let roles = ["informes", "verificacion", "pronostico", "video"];
+                    roles.forEach(r => {
+                        if (overrides[d][r]) {
+                            overrides[d][r].forEach(p => {
+                                if (estado[p]) {
+                                    estado[p].count++;
+                                    estado[p].lastWorked = d;
+                                    estado[p].roles[r]++;
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    let dateCalc = new Date(fechaInicio);
+                    dateCalc.setDate(dateCalc.getDate() + d);
+                    let dayOfWeek = dateCalc.getDay();
+
+                    let asignacionDia = { informes: null, verificacion: null, pronostico: null, video: null };
+                    let ocupadosHoy = [];
+
+                    // ROTACIÓN DE ASIGNACIÓN: Para evitar que el último grupo recoja "las sobras",
+                    // cambiamos el orden en que se arman los grupos cada día.
+                    let ordenRoles = [
+                        { nombre: "verificacion", n: 3 },
+                        { nombre: "pronostico", n: 3 }
+                    ];
+
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                        ordenRoles.push({ nombre: "informes", n: 2 });
+                    }
+
+                    // Girar la lista de prioridades dependiendo del día
+                    let shift = d % ordenRoles.length;
+                    let ordenRotado = ordenRoles.slice(shift).concat(ordenRoles.slice(0, shift));
+
+                    ordenRotado.forEach(rolObj => {
+                        asignacionDia[rolObj.nombre] = pickPeople(rolObj.n, d, rolObj.nombre, ocupadosHoy);
+                        ocupadosHoy.push(...asignacionDia[rolObj.nombre]);
+                    });
+
+                    // 4. Video Semanal (Tiene reglas estrictas, se asigna al final)
+                    if (dayOfWeek === 1) {
+                        let force = [];
+                        if (personas.includes("Lourdes") && !ocupadosHoy.includes("Lourdes")) force.push("Lourdes");
+                        if (personas.includes("Valeria") && !ocupadosHoy.includes("Valeria")) force.push("Valeria");
+                        asignacionDia.video = pickPeople(3, d, "video", ocupadosHoy, force);
+                    }
+
+                    asignaciones[d] = asignacionDia;
+                }
+            }
+        }
+
+        // --- EXPOSICIÓN DE FUNCIONES GLOBALES (Al usar módulo JS) ---
+        window.renderizarListaEquipo = function() {
+            const contenedor = document.getElementById('lista-equipo-activa');
+            if(!contenedor) return;
+            contenedor.innerHTML = '';
+            personas.forEach(p => {
+                contenedor.innerHTML += `
+                    <div class="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm shadow-sm">
+                        <span class="font-medium mr-2">${p}</span>
+                        <button onclick="eliminarPersona('${p}')" class="text-blue-400 hover:text-red-600 font-bold ml-1 px-1 rounded hover:bg-blue-200 transition-colors" title="Eliminar a ${p}">×</button>
+                    </div>
+                `;
+            });
+        }
+
+        window.agregarPersona = function() {
+            const input = document.getElementById('nueva-persona');
+            const nombre = input.value.trim();
+            const errorMsg = document.getElementById('team-error');
+
+            if (!nombre) return;
+            if (personas.some(p => p.toLowerCase() === nombre.toLowerCase())) {
+                errorMsg.innerText = "Esta persona ya está en el equipo.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            personas.push(nombre);
+            guardarEnNube(); // Reemplaza a guardarPersonas()
+            input.value = '';
+        }
+
+        window.eliminarPersona = function(nombre) {
+            const errorMsg = document.getElementById('team-error');
+            if (personas.length <= 3) {
+                errorMsg.innerText = "El equipo no puede tener menos de 3 personas para poder rotar.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            personas = personas.filter(p => p !== nombre);
+            guardarEnNube(); // Sincroniza eliminación con todo el mundo
+        }
+
+        window.forzarRebalanceo = function() {
+            // Cambiamos la semilla de desempate con un rango amplio
+            randomSeedOffset = Math.floor(Math.random() * 10000);
+
+            // Al guardar en la nube, se actualiza Firebase y dispara el renderizado para todos
+            guardarEnNube();
+
+            // Feedback visual rápido
+            const btn = event.currentTarget;
+            const textOriginal = btn.innerHTML;
+            btn.innerHTML = "¡Cronograma Barajado en la Nube!";
+            btn.classList.add("bg-green-600");
+            setTimeout(() => {
+                btn.innerHTML = textOriginal;
+                btn.classList.remove("bg-green-600");
+            }, 1500);
+        }
+
+        // --- LÓGICA DE FECHAS Y TABLA ---
+        const fechaInicio = new Date(2026, 9, 26);
+        fechaInicio.setHours(0, 0, 0, 0);
+        const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+
+
+window.renderizarCronograma = function() {
+            const tbody = document.getElementById("tabla-body");
+            tbody.innerHTML = "";
+
+            let hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+
+            let fechaArranquePantalla = hoy > fechaInicio ? hoy : fechaInicio;
+            let diasSimular = 30;
+            let diaAbsolutoFinal = Math.round((new Date(fechaArranquePantalla.getTime() + (diasSimular * 24 * 60 * 60 * 1000)) - fechaInicio) / (1000 * 60 * 60 * 24));
+
+            calcularAsignaciones(Math.max(diaAbsolutoFinal, 0));
+
+            for (let i = 0; i < diasSimular; i++) {
+                let fechaActual = new Date(fechaArranquePantalla);
+                fechaActual.setDate(fechaActual.getDate() + i);
+
+                let diffTiempo = fechaActual - fechaInicio;
+                let diffDias = Math.round(diffTiempo / (1000 * 60 * 60 * 24));
+
+                if (diffDias < 0) continue;
+
+                let asig = asignaciones[diffDias];
+                let modificadoHTML = overrides[diffDias] ? `<div class="mt-2"><span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Día Editado Manualmente</span></div>` : '';
+
+                let gruposHTML = "";
+                let actividadHTML = "";
+
+                // Renderizar Informes
+                if (asig.informes) {
+                    gruposHTML += `<div class="mb-3"><span class="font-bold text-indigo-700">📝 Informes:</span> ${asig.informes.join(", ")}</div>`;
+                    actividadHTML += `<div class="mb-3"><span class="font-semibold text-indigo-700">Informes Instituciones:</span> Post diario.</div>`;
+                }
+
+                // Renderizar Verificación
+                gruposHTML += `<div class="mb-3"><span class="font-bold text-red-600">✅ Verificación:</span> ${asig.verificacion.join(", ")}</div>`;
+                actividadHTML += `<div class="mb-3"><span class="font-semibold text-red-600">Verificación & Reporte:</span> Verifica pronóstico de ayer y publica reporte meteorológico de hoy.</div>`;
+
+                // Renderizar Pronóstico
+                gruposHTML += `<div class="mb-3"><span class="font-bold text-emerald-600">⛅ Pronóstico:</span> ${asig.pronostico.join(", ")}</div>`;
+                let fechaSub = new Date(fechaActual);
+                fechaSub.setDate(fechaSub.getDate() + 2);
+                let diaSub = fechaSub.toLocaleDateString('es-ES', {weekday: 'long'});
+                actividadHTML += `<div class="mb-3"><span class="font-semibold text-emerald-600">Pronóstico:</span> Elabora pronóstico válido para el <strong>${diaSub}</strong>.</div>`;
+
+                // Renderizar Video (Si es Lunes)
+                if (asig.video) {
+                    gruposHTML += `<div class="mb-3"><span class="font-bold text-purple-700">🎬 Video:</span> ${asig.video.join(", ")}</div>`;
+                    actividadHTML += `<div class="mb-3"><span class="font-semibold text-purple-700">Video Semanal:</span> Graba y prepara video para publicar el próximo lunes.</div>`;
+                }
+
+                let tr = document.createElement("tr");
+                tr.className = "hover:bg-gray-100 transition-colors duration-200";
+                if (fechaActual.getTime() === hoy.getTime()) {
+                    tr.classList.add("fila-hoy");
+                }
+
+                let fechaTexto = fechaActual.toLocaleDateString('es-ES', opcionesFecha);
+                fechaTexto = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium align-top">
+                        ${fechaTexto}
+                        ${fechaActual.getTime() === hoy.getTime() ? '<span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Hoy</span>' : ''}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-700 align-top border-l border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                ${gruposHTML} ${modificadoHTML}
+                            </div>
+                            <button onclick="abrirModal(${diffDias}, '${fechaTexto}')" class="ml-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-full transition-colors shrink-0 shadow-sm border border-blue-200" title="Editar turnos de este día">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 leading-relaxed align-top border-l border-gray-100">
+                        ${actividadHTML}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // --- LÓGICA DEL MODAL DE EDICIÓN ---
+        let diaEditando = null;
+        let esLunesEditando = false;
+
+        window.abrirModal = function(diffDias, fechaTexto) {
+            diaEditando = diffDias;
+            const modal = document.getElementById('modal-edicion');
+            const errorMsg = document.getElementById('error-msg');
+            const contenedor = document.getElementById('modal-content-dinamico');
+
+            document.getElementById('modal-fecha-texto').innerText = `Modificando grupos para: ${fechaTexto}`;
+            errorMsg.classList.add('hidden');
+            contenedor.innerHTML = '';
+
+            let asigActual = asignaciones[diffDias] || { informes: [], verificacion: [], pronostico: [], video: null };
+
+            // Determinar si el día seleccionado es lunes
+            let dateCalc = new Date(fechaInicio);
+            dateCalc.setDate(dateCalc.getDate() + diffDias);
+            esLunesEditando = (dateCalc.getDay() === 1);
+
+            // Función para generar desplegables rápidamente
+            function generarSelects(titulo, color, idPrefix, cantidad, seleccionados) {
+                // Mapeo explícito para que Tailwind reconozca las clases
+                const colorClasses = {
+                    indigo: { border: "border-indigo-200", bg: "bg-indigo-50", text: "text-indigo-800" },
+                    red: { border: "border-red-200", bg: "bg-red-50", text: "text-red-800" },
+                    emerald: { border: "border-emerald-200", bg: "bg-emerald-50", text: "text-emerald-800" },
+                    purple: { border: "border-purple-200", bg: "bg-purple-50", text: "text-purple-800" }
+                };
+
+                let classes = colorClasses[color];
+
+                let html = `<div class="p-3 border ${classes.border} ${classes.bg} rounded-lg">`;
+                html += `<h3 class="font-bold ${classes.text} mb-2">${titulo} (${cantidad} personas)</h3>`;
+                html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-2">`;
+
+                for(let i=0; i<cantidad; i++) {
+                    let preseleccionado = seleccionados && seleccionados[i] ? seleccionados[i] : "";
+                    html += `<select id="${idPrefix}_${i}" class="selec-miembro block w-full p-2 border border-gray-300 rounded bg-white focus:ring-blue-500 focus:border-blue-500 text-sm">`;
+                    html += `<option value="">- Seleccionar -</option>`;
+                    personas.forEach(p => {
+                        let selected = (p === preseleccionado) ? "selected" : "";
+                        html += `<option value="${p}" ${selected}>${p}</option>`;
+                    });
+                    html += `</select>`;
+                }
+                html += `</div></div>`;
+                return html;
+            }
+
+            // Validar si el día aplica para informes (Lunes a Viernes)
+            let diaSemana = dateCalc.getDay();
+            if (diaSemana >= 1 && diaSemana <= 5) {
+                contenedor.innerHTML += generarSelects("📝 Informes Instituciones", "indigo", "sel_inf", 2, asigActual.informes);
+            }
+
+            contenedor.innerHTML += generarSelects("✅ Verificación y Reporte", "red", "sel_ver", 3, asigActual.verificacion);
+            contenedor.innerHTML += generarSelects("⛅ Pronóstico Subsiguiente", "emerald", "sel_pro", 3, asigActual.pronostico);
+
+            if (esLunesEditando) {
+                contenedor.innerHTML += generarSelects("🎬 Video Semanal", "purple", "sel_vid", 3, asigActual.video);
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        window.cerrarModal = function() {
+            document.getElementById('modal-edicion').classList.add('hidden');
+            diaEditando = null;
+        }
+
+        window.guardarEdicion = function() {
+            const errorMsg = document.getElementById('error-msg');
+            let nuevaAsignacion = { informes: null, verificacion: [], pronostico: [], video: null };
+            let todosSeleccionados = [];
+
+            // Helper para recolectar datos de los selects
+            function recolectar(idPrefix, cantidad) {
+                let arr = [];
+                for(let i=0; i<cantidad; i++) {
+                    let selectElement = document.getElementById(`${idPrefix}_${i}`);
+                    if (selectElement && selectElement.value) {
+                        arr.push(selectElement.value);
+                        todosSeleccionados.push(selectElement.value);
+                    }
+                }
+                return arr;
+            }
+
+            let dateCalc = new Date(fechaInicio);
+            dateCalc.setDate(dateCalc.getDate() + diaEditando);
+            let diaSemana = dateCalc.getDay();
+
+            // 1. Recolectar Informes (Solo L-V)
+            if (diaSemana >= 1 && diaSemana <= 5) {
+                nuevaAsignacion.informes = recolectar("sel_inf", 2);
+                if (nuevaAsignacion.informes.length !== 2) {
+                    errorMsg.innerText = "Faltan asignar miembros en 'Informes Instituciones' (Debe ser 2).";
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+            }
+
+            // 2. Recolectar Verificación
+            nuevaAsignacion.verificacion = recolectar("sel_ver", 3);
+            if (nuevaAsignacion.verificacion.length !== 3) {
+                errorMsg.innerText = "Faltan asignar miembros en 'Verificación y Reporte' (Debe ser 3).";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // 3. Recolectar Pronóstico
+            nuevaAsignacion.pronostico = recolectar("sel_pro", 3);
+            if (nuevaAsignacion.pronostico.length !== 3) {
+                errorMsg.innerText = "Faltan asignar miembros en 'Pronóstico' (Debe ser 3).";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // 4. Recolectar Video (Solo Lunes)
+            if (esLunesEditando) {
+                nuevaAsignacion.video = recolectar("sel_vid", 3);
+                if (nuevaAsignacion.video.length !== 3) {
+                    errorMsg.innerText = "Faltan asignar miembros en 'Video Semanal' (Debe ser 3).";
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+            }
+
+            // VALIDACIÓN: Evitar que una persona haga doble turno el mismo día
+            let duplicados = todosSeleccionados.filter((item, index) => todosSeleccionados.indexOf(item) !== index);
+            if (duplicados.length > 0) {
+                let unicos = [...new Set(duplicados)];
+                errorMsg.innerText = `Error: Las siguientes personas están asignadas a más de una tarea el mismo día: ${unicos.join(", ")}. Por favor, redistribuye.`;
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // Guardar cambios y subir a Firebase
+            overrides[diaEditando] = nuevaAsignacion;
+            guardarEnNube();
+            cerrarModal();
+        }
+
+// --- INICIALIZACIÓN PRIMARIA ---
+        // Mostramos un estado de "Cargando" animado mientras esperamos a la nube.
+        document.getElementById('lista-equipo-activa').innerHTML = `
+            <span class="text-gray-500 text-sm italic animate-pulse">Cargando equipo...</span>
+        `;
+
+        document.getElementById("tabla-body").innerHTML = `
+            <tr>
+                <td colspan="3" class="px-6 py-12 text-center text-gray-500 text-base font-medium animate-pulse bg-gray-50">
+                    ⏳ Sincronizando cronograma con la nube...
+                </td>
+            </tr>
+        `;
+    </script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Servicio de Elaboración de Documentos Técnicos sobre Modelamiento de Dispersión (DTM) por Consultora Meteoclima.">
+    <title>Meteoclima</title>
+    <link rel="icon" type="image/svg+xml" href="../static/img/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+
+  <header>
+          <div class="logo-container">
+              <a href="../" style="display: contents; text-decoration: none;">
+                  <img src="../static/img/logo.svg" alt="Logo Meteoclima" class="logo-img">
+                  <span class="brand-name" style="color: var(--text-light);">meteoclima
+              </a>
+          </div>
+          <nav>
+              <ul>
+                  <li><a href="../index.html#inicio">Inicio</a></li>
+                  <li><a href="../index.html#nosotros">Nosotros</a></li>
+                  <li><a href="../services/">Servicios</a></li>
+                  <li><a href="../index.html#capacitacion">Cursos</a></li>
+                  <li><a href="../monitoreo-enso.html" style="color: var(--whatsapp-green); font-weight: bold;"><i class="fas fa-chart-line"></i> Dashboard ENSO</a></li>
+                  <li><a href="https://wa.me/51944014115" class="cta-header" target="_blank"><i class="fab fa-whatsapp"></i> Cotizar</a></li>
+              </ul>
+          </nav>
+      </header>
+
+    <section class="service-hero">
+        <div class="hero-content">
+            <h1>Servicio de Elaboración de Documentos Técnicos sobre <span class="highlight">Modelamiento de Dispersión (DTM)</span></h1>
+            <p class="subtitle">Ingeniería de precisión para la aprobación sin observaciones de sus Instrumentos de Gestión Ambiental ante el SENAMHI.</p>
+        </div>
+        <div class="custom-shape-divider-bottom">
+            <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C52.16,106.68,114.54,115.4,178.69,113.3,235.31,111.45,283.43,65.64,321.39,56.44Z" class="shape-fill"></path>
+            </svg>
+        </div>
+    </section>
+
+    <main class="service-container">
+
+        <section class="service-section">
+            <h2>1. El Riesgo Operativo: ¿Por qué es crítico este servicio?</h2>
+            <p>Para que un Instrumento de Gestión Ambiental (IGA) sea aprobado en el Perú, el titular del proyecto debe demostrar matemáticamente que sus emisiones atmosféricas no superarán los Estándares de Calidad Ambiental (ECA - Aire).</p>
+            <p>Bajo el marco del <strong>Decreto Supremo N° 027-2021-MINAM</strong>, la evaluación de los Documentos Técnicos sobre Modelamiento de Dispersión de Contaminantes Atmosféricos (DTM) es ahora un servicio prestado en exclusividad por el SENAMHI.</p>
+            <p>El SENAMHI solicita al interesado un conjunto de requisitos, los cuales deben ser cuidadosamente cumplidos para que el expediente sea admitido, de acuerdo a su instructivo publicado en 2022. Un expediente con una mala elección del modelo, topografía de baja resolución, o datos meteorológicos que no cubren los periodos mínimos exigidos (3 años observados o 6 años modelados), será rechazado inmediatamente, de acuerdo a su manual técnico publicado en 2021. <strong>Un DTM rechazado significa la paralización del cronograma de aprobación de su Estudio de Impacto Ambiental (EIA) o su Modificatoria (MEIA).</strong></p>
+        </section>
+
+        <section class="service-section">
+            <h2>2. Arquitectura del Servicio: Rigor en cada componente</h2>
+            <p>Un modelamiento de dispersión es el resultado de acoplar tres subsistemas complejos. En Consultora Meteoclima nos encargamos de la ejecución integral de cada fase:</p>
+
+            <div class="phase-grid">
+                <div class="phase-card">
+                    <h3>Fase A: Ingeniería Meteorológica</h3>
+                    <p class="phase-intro">La calidad del modelamiento depende enteramente de la meteorología de entrada.</p>
+                    <ul>
+                        <li><strong>Representatividad:</strong> Evaluamos la disponibilidad de estaciones meteorológicas <em>in situ</em>. Aplicamos protocolos QA/QC para tratar datos faltantes según los límites del SENAMHI.</li>
+                        <li><strong>Modelamiento Numérico (WRF):</strong> En zonas remotas sin estaciones, ejecutamos modelos de mesoescala para generar los 6 años de datos horarios exigidos, con resolución mínima de 1 km.</li>
+                        <li><strong>Pre-procesamiento:</strong> Formateamos la data entregando los archivos nativos (.sfc, .pfl / CALMET.DAT) que exige el evaluador.</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card">
+                    <h3>Fase B: Inventario de Emisiones</h3>
+                    <p class="phase-intro">Determinamos "cuánto, cómo y dónde" emitirá su proyecto.</p>
+                    <ul>
+                        <li><strong>Cuantificación Técnica:</strong> Estimamos tasas de emisión de fuentes puntuales (chimeneas), de área (canchas de relave), de volumen y móviles usando factores rigurosos (EPA AP-42, EMEP).</li>
+                        <li><strong>Inclusión de Controles:</strong> Modelamos escenarios integrando las eficiencias de reducción de sus equipos (filtros de mangas, aspersores) para demostrar cumplimiento ante OEFA.</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card">
+                    <h3>Fase C: Dispersión y Efecto Acumulativo</h3>
+                    <p class="phase-intro">Seleccionamos el motor de cálculo según la física de su entorno.</p>
+                    <ul>
+                        <li><strong>Terrenos Simples:</strong> Implementamos AERMOD para distancias menores a 50 km con topografía homogénea.</li>
+                        <li><strong>Terrenos Complejos:</strong> Implementamos CALPUFF para zonas andinas accidentadas o con brisas marinas.</li>
+                        <li><strong>Efecto Acumulativo:</strong> Sumamos la Concentración Modelada a la Concentración de Fondo (Línea Base).</li>
+                        <li><strong>Validación Estadística:</strong> Calibramos el modelo cruzando salidas contra su red de monitoreo de Calidad de Aire.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-section">
+            <h2>3. Flujograma de Trabajo Meteoclima</h2>
+            <p>Trabajamos bajo una metodología transparente y trazable para asegurar la calidad de su expediente:</p>
+
+            <div style="margin-top: 30px;">
+                <div class="flow-step">
+                    <div class="flow-icon"><i class="fas fa-search-location"></i></div>
+                    <div class="flow-content">
+                        <h4>Auditoría de Insumos</h4>
+                        <p>Revisión de su ingeniería de proyecto, topografía (Modelos de Elevación Digital &le; 90m) y mapas de uso de suelo (&le; 540m).</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon"><i class="fas fa-cloud-sun-rain"></i></div>
+                    <div class="flow-content">
+                        <h4>Generación Meteorológica</h4>
+                        <p>Tratamiento riguroso de datos de estaciones o simulación numérica avanzada mediante WRF.</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon"><i class="fas fa-laptop-code"></i></div>
+                    <div class="flow-content">
+                        <h4>Procesamiento de Dispersión</h4>
+                        <p>Ejecución de múltiples escenarios (Construcción, Operación, Cierre / Con y Sin controles ambientales).</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon"><i class="fas fa-map-marked-alt"></i></div>
+                    <div class="flow-content">
+                        <h4>Generación de Entregables</h4>
+                        <p>Mapeo de isoconcentraciones georreferenciadas (Shapefiles) y extracción de máximos en receptores.</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon"><i class="fas fa-folder-open"></i></div>
+                    <div class="flow-content">
+                        <h4>Armado del Expediente DTM</h4>
+                        <p>Ensamblaje del documento técnico (.docx, .pdf) y de todas las carpetas digitales estructuradas idénticamente al formato de revisión del SGD de SENAMHI.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tool-banner">
+            <h2><i class="fas fa-satellite-dish"></i> Dashboard de Representatividad Meteorológica</h2>
+            <p>El primer paso para que su proyecto no sufra sobrecostos es saber si los datos meteorológicos cercanos sirven o si será obligatorio simular la meteorología numéricamente.</p>
+            <p>Hemos desarrollado una herramienta interactiva gratuita. Ingrese las coordenadas de su proyecto y nuestro algoritmo cruzará su ubicación con la red de estaciones nacionales en segundos.</p>
+
+            <a href="../tools/station-availability" class="btn-tool">
+                <i class="fas fa-map-pin"></i> Consultar Disponibilidad de Estaciones
+            </a>
+        </section>
+
+    </main>
+
+    <footer>
+            <span class="footer-logo" style="display: block; margin-bottom: -15px;"><img src="static/img/logo.jpg" alt="Meteoclima" style="height: 100px;"></span>
+            <div class="social-links" style="margin-top: 0px;">
+              <a href="https://www.linkedin.com/company/meteoclimalab" target="_blank"><i class="fab fa-linkedin"></i></a>
+              <a href="https://www.facebook.com/meteoclimalab" target="_blank"><i class="fab fa-facebook"></i></a>
+              <a href="https://www.instagram.com/meteoclimalab" target="_blank"><i class="fab fa-instagram"></i></a>
+              <a href="https://www.youtube.com/@meteoclimalab" target="_blank"><i class="fab fa-youtube"></i></a>
+            </div>
+            <p style="margin-top: 20px; font-size: 0.8rem; opacity: 0.5;">
+                &copy; 2026 Meteoclima. Todos los derechos reservados.
+            </p>
+        </footer>
+
+    <a href="https://wa.me/51944014115?text=Hola,%20deseo%20cotizar%20un%20servicio%20DTM" class="float-wa" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+</body>
+</html>

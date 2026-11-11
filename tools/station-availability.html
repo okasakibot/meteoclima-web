@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboard interactivo para evaluar disponibilidad de estaciones meteorológicas en Perú para Instrumentos de Gestión Ambiental.">
+    <title>Meteoclima</title>
+    <link rel="icon" type="image/svg+xml" href="../static/img/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="stylesheet" href="../static/css/station-availability.css">
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+</head>
+<body class="dashboard-body">
+
+    <header>
+        <div class="logo-container">
+            <a href="../index.html" style="display: contents; text-decoration: none;">
+                <img src="../static/img/logo.svg" alt="Logo Meteoclima" class="logo-img">
+                <span class="brand-name" style="color: var(--text-light);">meteoclima
+            </a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="../dtm.html"><i class="fas fa-arrow-left"></i> Volver a DTM</a></li>
+                <li><a href="https://wa.me/51944014115" class="cta-header" target="_blank"><i class="fab fa-whatsapp"></i> Contacto Directo</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-satellite-dish"></i> Explorador de Estaciones</h2>
+                <p>Herramienta interactiva para identificar estaciones hidrometeorológicas que cumplen la normativa de tu estudio.</p>
+            </div>
+
+            <div class="control-group" style="padding-top: 5px; border-top: none;">
+                            <label for="studyType" style="font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 5px; display: block;">Objetivo del Estudio</label>
+                            <select id="studyType" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-family: 'Roboto', sans-serif; margin-bottom: 15px;">
+                                                <option value="DTM">Modelamiento de Dispersión (DTM)</option>
+                                                <option value="EIA">Línea Base Climática (EIA/IGA)</option>
+                                                <option value="HIDRO">Delimitación de Fajas Marginales (Hidro)</option>
+                                                <option value="EVAR">Análisis de Riesgo Climáticos (EVAR)</option>
+                                            </select>
+                        </div>
+
+                        <div class="info-box" id="legal-info-box">
+                            </div>
+
+                            <div class="control-group">
+                                            <h3>Ubicación del Proyecto</h3>
+
+                                            <div id="coords-input-group">
+                                                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 10px;">Ingrese las coordenadas de su fuente de emisión.</p>
+                                                <div class="input-row" style="margin-bottom: 15px;">
+                                                    <div class="input-field">
+                                                        <label for="inputLat">Latitud (WGS84)</label>
+                                                        <input type="number" id="inputLat" lang="en-US" placeholder="-12.0431" step="0.0001">
+                                                    </div>
+                                                    <div class="input-field">
+                                                        <label for="inputLon">Longitud (WGS84)</label>
+                                                        <input type="number" id="inputLon" lang="en-US" placeholder="-77.0282" step="0.0001">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div id="shapefile-input-group" style="display: none; margin-bottom: 15px;">
+                                                                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">Suba el polígono de su área de estudio.</p>
+                                                                <p style="font-size: 0.75rem; color: #ef4444; margin-bottom: 10px; background-color: #fef2f2; padding: 6px; border-radius: 4px; border-left: 3px solid #ef4444;">
+                                                                    <b>Importante:</b> El archivo debe estar comprimido en formato <b>.zip</b> y contener obligatoriamente los archivos auxiliares (.shp, .shx, .dbf, etc).
+                                                                </p>
+                                                                <div class="input-field">
+                                                                    <label for="fileShapefile" style="font-weight: bold; color: var(--brand-dark);">Subir Shapefile (.zip)</label>
+                                                                    <input type="file" id="fileShapefile" accept=".zip" style="width: 100%; padding: 8px; border: 1px dashed #94a3b8; border-radius: 5px; cursor: pointer;">
+                                                                </div>
+                                                            </div>
+
+                                            <button id="btnAnalizar" class="btn-analizar"><i class="fas fa-search-location"></i> Evaluar Cumplimiento Normativo</button>
+
+                                            <div id="progress-container" style="display: none; margin-top: 15px; width: 100%; background-color: #e2e8f0; border-radius: 5px; height: 25px; position: relative; overflow: hidden; border: 1px solid #cbd5e1;">
+                                                <div id="progress-bar" style="width: 0%; height: 100%; background-color: #10b981; transition: width 0.1s linear;"></div>
+                                                <div id="progress-text" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; color: #1e293b; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">0%</div>
+                                            </div>
+                                        </div>
+
+            <div id="result-container" class="result-container hidden">
+                </div>
+        </aside>
+
+        <section class="map-section">
+            <div id="map"></div>
+            <div id="map-loader" class="map-loader">
+                <div class="spinner"></div>
+                <p>Cargando red de estaciones nacionales...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="../static/js/station-availability.js"></script>
+</body>
+</html>

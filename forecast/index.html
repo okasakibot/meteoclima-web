@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meteoclima Forecast | Visor Interactivo</title>
+    <link rel="icon" type="image/svg+xml" href="static/img/favicon.svg">
+    <!-- Tailwind para la interfaz -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Leaflet para el mapa base -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- jQuery (Requerido por leaflet-velocity para evitar error de $ not defined) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Leaflet Velocity para Animación de Viento -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-velocity@1.2.3/dist/leaflet-velocity.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-velocity@1.2.3/dist/leaflet-velocity.min.js"></script>
+
+    <!-- Plotly para Gráficos de Corte Transversal -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Estilos Propios -->
+    <link rel="stylesheet" href="../static/css/forecast.css">
+    <!-- SDK Firebase v10+ (App y Realtime Database) -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+</head>
+<body>
+
+  <!-- Pantalla de Login -->
+  <div id="auth-overlay">
+      <h1 class="text-4xl font-bold text-white mb-2">Meteoclima Forecast</h1>
+      <p class="text-slate-300 mb-8">Acceso exclusivo para el equipo de Meteoclima</p>
+      <button id="btn-login" disabled class="px-6 py-3 bg-slate-600 text-white font-bold rounded-lg transition shadow-lg flex items-center gap-3 opacity-75 cursor-wait">
+        Verificando accesos...
+      </button>
+      <p id="auth-error" class="text-red-400 mt-4 hidden font-medium"></p>
+  </div>
+
+    <!-- Contenedor del Mapa -->
+    <div id="map"></div>
+
+    <!-- Indicador de Carga Flotante -->
+    <div id="loading-indicator" class="hidden absolute top-6 left-1/2 transform -translate-x-1/2 bg-blue-600/90 backdrop-blur text-white px-6 py-2 rounded-full font-bold text-sm shadow-[0_0_15px_rgba(37,99,235,0.5)] z-[2000] flex items-center gap-3 transition-opacity">
+        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        Procesando atmósfera...
+    </div>
+
+    <!-- Título Superior Centro (Fecha UTC) -->
+    <div id="top-date-title" class="fixed top-0 left-0 w-full text-center pointer-events-none z-[1000] mt-3 transition-opacity duration-300">
+        <span id="top-date-text" class="bg-slate-900/80 text-white px-5 py-1.5 rounded-full font-mono text-sm shadow-md font-bold border border-slate-700">
+            Cargando fecha local...
+        </span>
+    </div>
+
+    <!-- Contenedor Derecho (Perfil Local + Cronograma) -->
+    <div id="right-panel" class="fixed top-6 right-4 z-[1000] flex flex-col gap-3 items-end transition-opacity duration-300">
+        <!-- Perfil Estático -->
+        <div id="user-profile" class="bg-white/95 backdrop-blur pl-2 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 border border-gray-200">
+            <div class="bg-green-100 rounded-full w-8 h-8 flex items-center justify-center text-lg shadow-inner cursor-help border border-green-300" title="Modo Desarrollador">
+                👨‍💻
+            </div>
+            <div class="flex flex-col">
+                <span id="profile-name" class="text-xs font-bold text-gray-800 leading-none mb-0.5">Modo Local</span>
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Sin Autenticación</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-cronograma" onclick="window.open('cronograma.html', '_blank')" class="hidden px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-full hover:bg-emerald-700 transition flex items-center shadow-md border border-emerald-500">
+            🗓️ Cronograma
+        </button>
+    </div>
+
+    <!-- Modal para el Gráfico de Corte Transversal -->
+    <div id="modal-corte" class="hidden fixed inset-0 bg-black/75 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden">
+            <div class="bg-purple-900 text-white px-6 py-4 flex justify-between items-center shadow-md z-10">
+                <h2 class="text-xl font-bold flex items-center gap-2">📐 Perfil de Corte Transversal</h2>
+                <button onclick="cerrarCorte()" class="text-white hover:text-red-400 font-bold text-3xl transition-colors">&times;</button>
+            </div>
+            <!-- Barra Info y Controles Locales (Editables) -->
+            <div class="bg-purple-50 px-4 py-2 border-b border-purple-200 text-sm text-purple-900 flex flex-col md:flex-row justify-between items-center gap-3 z-10 shadow-sm">
+                <!-- Coordenadas Editables -->
+                <div class="flex items-center gap-1 font-mono text-xs">
+                    <span class="font-bold text-purple-700 bg-purple-200 px-1.5 py-0.5 rounded mr-1">A</span>
+                    Lat: <input type="number" id="input-lat-a" step="0.1" class="w-16 px-1 py-0.5 border border-purple-300 rounded text-center outline-none focus:ring-1 focus:ring-purple-500 bg-white">
+                    Lon: <input type="number" id="input-lon-a" step="0.1" class="w-16 px-1 py-0.5 border border-purple-300 rounded text-center outline-none focus:ring-1 focus:ring-purple-500 bg-white mr-2">
+
+                    <span class="font-bold text-purple-700 bg-purple-200 px-1.5 py-0.5 rounded mr-1">B</span>
+                    Lat: <input type="number" id="input-lat-b" step="0.1" class="w-16 px-1 py-0.5 border border-purple-300 rounded text-center outline-none focus:ring-1 focus:ring-purple-500 bg-white">
+                    Lon: <input type="number" id="input-lon-b" step="0.1" class="w-16 px-1 py-0.5 border border-purple-300 rounded text-center outline-none focus:ring-1 focus:ring-purple-500 bg-white">
+
+                    <button id="btn-update-coords" class="ml-3 px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 font-bold shadow-sm transition active:scale-95">Graficar</button>
+                </div>
+
+                <!-- Controles de Tiempo -->
+                <div class="flex items-center gap-2 shrink-0 bg-white px-2 py-1 border border-purple-200 rounded shadow-sm">
+                    <span class="font-bold text-[11px] uppercase tracking-wider text-purple-700">Tiempo:</span>
+                    <input type="range" id="corte-time-slider" min="0" max="40" value="0" class="w-24 cursor-pointer accent-purple-600">
+                    <div class="flex flex-col text-right w-36">
+                        <span id="corte-time-display-date" class="font-bold font-mono text-purple-800 text-[10px] leading-tight">Cargando...</span>
+                        <span id="corte-time-display-offset" class="font-bold font-mono text-purple-600 text-[9px] leading-tight">+0h</span>
+                    </div>
+                </div>
+            </div>
+            <div id="corte-grafico-container" class="flex-1 bg-gray-50 flex items-center justify-center relative">
+                <!-- Se inyectará el spinner y el gráfico aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- BARRA INFERIOR UNIFICADA (Totalmente Adaptativa) -->
+    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full h-10 bg-slate-900/95 text-white flex items-center justify-between px-4 z-[1000] text-[11px] font-mono transition-transform duration-300 border-t border-slate-700 shadow-[0_-4px_10px_rgba(0,0,0,0.5)] gap-4">
+
+        <!-- 1. Contenedor Hover adaptativo (min-width para estabilidad, pero crece si necesita) -->
+        <div id="hover-info" class="min-w-[180px] whitespace-nowrap text-emerald-400 font-bold shrink-0">
+            <span id="hover-text">📍 --.--, --.-- | --</span>
+        </div>
+
+        <!-- 2. Controles de Variables (Anchos fijos para evitar brincos) -->
+        <div class="flex items-center gap-2 w-[280px] shrink-0 ml-2">
+            <select id="var-select" class="w-[150px] bg-slate-800 border border-slate-600 rounded px-2 py-0.5 outline-none cursor-pointer hover:bg-slate-700 transition">
+              <optgroup label="Superficie">
+                  <option value="t2m" selected>Temperatura a 2m (t2m)</option>
+                  <option value="tp">Precipitación Total (tp)</option>
+                  <option value="msl">Presión Nivel del Mar (msl)</option>
+              </optgroup>
+              <optgroup label="Variables 3D">
+                  <option value="vo">Vorticidad relativa (vo)</option>
+                  <option value="d">Divergencia (d)</option>
+                  <option value="conv_q">Conv. Humedad (conv_q)</option>
+                  <option value="adv_q">Adv. Humedad (adv_q)</option>
+                  <option value="adv_t">Adv. Temperatura (adv_t)</option>
+                  <option value="w">Velocidad del Viento</option>
+                  <option value="r">Humedad Relativa (r)</option>
+                  <option value="q">Humedad Específica (q)</option>
+              </optgroup>
+            </select>
+
+            <div class="flex items-center gap-1">
+              <span>Nivel:</span>
+              <select id="level-select" class="w-[85px] bg-slate-800 border border-slate-600 rounded px-2 py-0.5 outline-none cursor-pointer hover:bg-slate-700 transition">
+                  <optgroup id="optgroup-levels" label="Presión">
+                      <option value="9">200 hPa</option>
+                      <option value="8">250 hPa</option>
+                      <option value="7">300 hPa</option>
+                      <option value="6">400 hPa</option>
+                      <option value="5">500 hPa</option>
+                      <option value="4">600 hPa</option>
+                      <option value="3">700 hPa</option>
+                      <option value="2">850 hPa</option>
+                      <option value="1">925 hPa</option>
+                      <!--<option value="0">1000 hPa</option>-->
+                  </optgroup>
+                  <optgroup id="optgroup-sfc" label="Superficie">
+                      <option value="surface" selected>SFC</option>
+                  </optgroup>
+              </select>
+            </div>
+        </div>
+
+        <!-- 3. Slider de Tiempo Dinámico (flex-1 permite que absorba el espacio sobrante) -->
+        <div class="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded border border-slate-600 flex-1 min-w-[200px] max-w-[600px] mx-auto">
+            <button id="btn-time-prev" class="px-2 text-slate-300 hover:text-white font-bold text-sm leading-none">&lsaquo;</button>
+            <input type="range" id="time-slider" min="0" max="40" value="0" class="w-full cursor-pointer accent-blue-500">
+            <button id="btn-time-next" class="px-2 text-slate-300 hover:text-white font-bold text-sm leading-none">&rsaquo;</button>
+            <span id="time-display" class="font-bold text-blue-400 w-10 text-right ml-1 shrink-0">+0h</span>
+        </div>
+
+        <!-- 4. Barra de colores cliqueable -->
+        <div id="colorbar-container" class="hidden flex items-center gap-2 w-48 bg-slate-800 px-2 py-0.5 rounded border border-slate-600 cursor-pointer hover:bg-slate-700 transition shrink-0" title="Configurar Paleta">
+            <span id="cb-min" class="text-[9px] text-gray-300">0</span>
+            <div class="h-1.5 flex-1 rounded" style="background: linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);"></div>
+            <span id="cb-max" class="text-[9px] text-gray-300">100</span>
+        </div>
+
+        <!-- 5. Contenedor de Botones de Acción (shrink-0 para que no se aplasten) -->
+        <div class="flex items-center gap-2 shrink-0">
+            <button id="btn-wind-toggle" class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition font-bold border border-blue-400">🌬️ Viento: ON</button>
+            <button id="btn-cross-section" class="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded transition font-bold border border-purple-400">📐 Corte</button>
+            <button id="btn-config" class="px-2 py-0.5 bg-slate-600 hover:bg-slate-500 text-white rounded transition font-bold border border-slate-400" title="Configuración Visual">⚙️</button>
+            <button id="btn-hide-ui" class="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded transition font-bold ml-2" title="Ocultar Interfaz">Ocultar UI 🔽</button>
+        </div>
+
+    </div> <!-- FINAL de bottom-bar -->
+
+    <button id="btn-show-ui" class="hidden fixed bottom-2 right-4 bg-slate-900/90 text-white px-3 py-1 rounded-full z-[1000] text-xs hover:bg-slate-800 shadow-lg border border-slate-700 transition font-bold">
+        🔼 Mostrar UI
+    </button>
+
+    <!-- NUEVO MODAL DE CONFIGURACIÓN VISUAL -->
+        <div id="modal-config" class="hidden fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+            <div class="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden text-white font-mono text-sm">
+            <div class="bg-slate-900 px-4 py-3 flex justify-between items-center border-b border-slate-700">
+                <h2 class="font-bold flex items-center gap-2">⚙️ Configuración Visual</h2>
+                <button id="btn-close-config" class="hover:text-red-400 font-bold text-xl transition-colors">&times;</button>
+            </div>
+
+            <div class="p-5 flex flex-col gap-4">
+              <!-- Estilo del Mapa Base -->
+              <div>
+                  <label class="block font-bold mb-1 text-slate-300">Mapa Base:</label>
+                  <select id="config-basemap" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 outline-none">
+                      <option value="osm">OpenStreetMap Light</option>
+                      <option value="dark">Esri Dark Map</option>
+                      <option value="satellite1">Esri Only Satellite</option>
+                      <option value="satellite2">Google Satellite</option>
+                      <option value="terrain-esri" selected>Esri Satellite+References</option>
+                      <option value="terrain-stamen">Stamen Terrain</option>
+                  </select>
+              </div>
+
+                <!-- Paleta de Colores (Humedad) -->
+                <div>
+                    <label class="block font-bold mb-1 text-slate-300">Paleta:</label>
+                    <select id="config-colormap-r" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 outline-none">
+                        <option value="discrete">Continua para HR</option>
+                        <option value="continuous">Continua (Jet Original)</option>
+                        <option value="viridis">Continua (Viridis)</option>
+                        <option value="plasma">Continua (Plasma)</option>
+                        <option value="custom">Personalizada (Constructor)</option>
+                    </select>
+                </div>
+
+                <!-- CONSTRUCTOR DE PALETA PERSONALIZADA (Oculto por defecto) -->
+                <div id="custom-palette-builder" class="hidden bg-slate-700/50 p-3 rounded border border-slate-600 space-y-3">
+                    <div class="flex gap-2">
+                        <div class="w-1/2">
+                            <label class="block text-xs font-bold text-slate-400 mb-1">Mínimo (%)</label>
+                            <input type="number" id="custom-min" value="0" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm outline-none">
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-xs font-bold text-slate-400 mb-1">Máximo (%)</label>
+                            <input type="number" id="custom-max" value="100" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Paradas de Color (Valor : Color RGB)</label>
+                        <div id="custom-stops-container" class="space-y-2">
+                            <!-- Stops dinámicos -->
+                            <div class="flex gap-2 items-center stop-row">
+                                <input type="number" value="0" class="stop-val w-16 bg-slate-900 border border-slate-600 rounded px-1 py-1 text-xs">
+                                <input type="color" value="#000000" class="stop-color w-full h-6 bg-transparent border-0 cursor-pointer">
+                                <button class="btn-remove-stop text-red-400 hover:text-red-300 font-bold">&times;</button>
+                            </div>
+                            <div class="flex gap-2 items-center stop-row">
+                                <input type="number" value="100" class="stop-val w-16 bg-slate-900 border border-slate-600 rounded px-1 py-1 text-xs">
+                                <input type="color" value="#ffffff" class="stop-color w-full h-6 bg-transparent border-0 cursor-pointer">
+                                <button class="btn-remove-stop text-red-400 hover:text-red-300 font-bold">&times;</button>
+                            </div>
+                        </div>
+                        <button id="btn-add-stop" class="mt-2 text-xs bg-slate-600 hover:bg-slate-500 px-2 py-1 rounded w-full font-bold">+ Añadir Parada</button>
+                    </div>
+                    <button id="btn-apply-custom" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-1.5 rounded mt-2 text-sm shadow-md transition">Aplicar Paleta</button>
+                </div>
+
+                <!-- Opacidad de Capas -->
+                <div>
+                  <label class="block font-bold mb-1 text-slate-300 flex justify-between">
+                      Opacidad Capa: <span id="lbl-opacity-modal">70%</span>
+                  </label>
+                  <!-- Asegúrate de tener min="0", max="1", y step="0.05" -->
+                  <input type="range" id="config-opacity-modal" min="0" max="1" step="0.05" value="0.7" class="w-full accent-blue-500">
+              </div>
+              <!-- Velocidad del Viento (Partículas) (IDs ACTUALIZADOS AQUÍ SI ES NECESARIO) -->
+              <div>
+                  <label class="block font-bold mb-1 text-slate-300 flex justify-between">
+                      Velocidad Partículas Viento: <span id="lbl-wind-speed-modal">Normal</span>
+                  </label>
+                  <input type="range" id="config-wind-speed-modal" min="0.005" max="0.05" step="0.005" value="0.015" class="w-full accent-emerald-500">
+              </div>
+          </div>
+      </div>
+  </div>
+
+    <!-- Script de Lógica Principal Local -->
+    <script type="module" src="../static/js/forecast.js"></script>
+</body>
+</html>
