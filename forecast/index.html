@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meteoclima Forecast | Visor Interactivo</title>
-    <link rel="icon" type="image/svg+xml" href="static/img/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="../static/img/favicon.svg">
     <!-- Tailwind para la interfaz -->
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -31,7 +31,7 @@
 <body>
 
   <!-- Pantalla de Login -->
-  <div id="auth-overlay">
+  <div id="auth-overlay" class="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center text-center p-4">
       <h1 class="text-4xl font-bold text-white mb-2">Meteoclima Forecast</h1>
       <p class="text-slate-300 mb-8">Acceso exclusivo para el equipo de Meteoclima</p>
       <button id="btn-login" disabled class="px-6 py-3 bg-slate-600 text-white font-bold rounded-lg transition shadow-lg flex items-center gap-3 opacity-75 cursor-wait">
