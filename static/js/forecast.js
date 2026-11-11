@@ -1030,6 +1030,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const optgroupLevels = document.getElementById('optgroup-levels');
         const optgroupSfc = document.getElementById('optgroup-sfc');
 
+        // Controles Modal Transversal
+        document.getElementById('btn-cross-section')?.addEventListener('click', function() {
+            isSelectingCrossSection = !isSelectingCrossSection;
+            crossSectionPoints = [];
+            if (isSelectingCrossSection) {
+                this.classList.replace('bg-purple-600', 'bg-red-600');
+                this.innerText = "📍 Cancelar";
+                document.getElementById('map').style.cursor = 'crosshair';
+
+                if (crossSectionLine) map.removeLayer(crossSectionLine);
+                crossSectionMarkers.forEach(m => map.removeLayer(m));
+                crossSectionMarkers = [];
+            } else {
+                this.classList.replace('bg-red-600', 'bg-purple-600');
+                this.innerText = "📐 Corte";
+                document.getElementById('map').style.cursor = '';
+            }
+        });
+
         if(cSel && dOpt) {
             if (selectedVar === 'r' || selectedVar === 'r2m') {
                 dOpt.style.display = 'block';
