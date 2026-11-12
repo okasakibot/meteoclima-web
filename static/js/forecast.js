@@ -762,17 +762,12 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                 let rVal = null, projU = 0, wVal = 0;
 
                 if (yIdx >= 0 && yIdx < height && xIdx >= 0 && xIdx < width) {
-                    let idx = yIdx * width + xIdx;
-
-                    // Máscara Topográfica (Debajo de la montaña es nulo)
-                    if(currentNivel >= topoY[i]) {
-                        rVal = null;
-                    } else {
-                        let rRaw = resultadosNiveles[lvl][0][idx];
-                        if (!isNaN(rRaw) && isFinite(rRaw) && rRaw < 1e20) {
-                            rVal = rRaw;
-                            projU = (resultadosNiveles[lvl][1][idx] * unitX) + (resultadosNiveles[lvl][2][idx] * unitY);
-                            wVal = resultadosNiveles[lvl][3][idx] * 15.0; // Escalado visual para w
+                  let idx = yIdx * width + xIdx;
+                  let rRaw = resultadosNiveles[lvl][0][idx];
+                  if (!isNaN(rRaw) && isFinite(rRaw) && rRaw < 1e20) {
+                      rVal = rRaw;
+                      projU = (resultadosNiveles[lvl][1][idx] * unitX) + (resultadosNiveles[lvl][2][idx] * unitY);
+                      wVal = resultadosNiveles[lvl][3][idx] * 15.0;
                         }
                     }
                 }
@@ -866,8 +861,8 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
                 ctx.beginPath();
 
-                const dt_x = 0.0003;
-                const dt_p = 2.0;
+                const dt_x = 0.003;
+                const dt_p = 0.3;
 
                 for (let i = 0; i < crossSectionParticles.length; i++) {
                     let pt = crossSectionParticles[i];
