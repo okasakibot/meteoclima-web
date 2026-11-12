@@ -350,24 +350,53 @@ export function initUI() {
         const optgroupSfc = document.getElementById('optgroup-sfc');
 
         if(cSel && dOpt) {
-            if (selectedVar === 'r' || selectedVar === 'r2m') { dOpt.style.display = 'block'; if (['continuous', 'discrete'].includes(cSel.value)) cSel.value = 'discrete'; }
-            else { dOpt.style.display = 'none'; if (cSel.value === 'discrete') cSel.value = 'continuous'; }
+            if (selectedVar === 'r' || selectedVar === 'r2m') {
+                dOpt.style.display = 'block';
+                if (['continuous', 'discrete'].includes(cSel.value)) cSel.value = 'discrete';
+            } else {
+                dOpt.style.display = 'none';
+                if (cSel.value === 'discrete') cSel.value = 'continuous';
+            }
         }
 
         const variablesSoloSuperficie = ['t2m', 'tp', 'msl'];
         const variablesSoloNiveles = ['vo', 'd'];
 
         if(levelSelect && optgroupLevels && optgroupSfc) {
+            // Guardamos el nivel actual antes de aplicar cambios
+            const nivelActual = levelSelect.value;
+
             if (variablesSoloSuperficie.includes(selectedVar)) {
-                optgroupLevels.style.display = 'none'; optgroupSfc.style.display = 'block';
-                levelSelect.value = 'surface'; levelSelect.disabled = true; levelSelect.classList.add('opacity-50', 'cursor-not-allowed');
-            } else if (variablesSoloNiveles.includes(selectedVar)) {
-                optgroupLevels.style.display = 'block'; optgroupSfc.style.display = 'none';
-                levelSelect.disabled = false; levelSelect.classList.remove('opacity-50', 'cursor-not-allowed');
-                if (levelSelect.value === 'surface') levelSelect.value = '0';
-            } else {
-                optgroupLevels.style.display = 'block'; optgroupSfc.style.display = 'block';
-                levelSelect.disabled = false; levelSelect.classList.remove('opacity-50', 'cursor-not-allowed');
+                // Bloquea en Superficie
+                optgroupLevels.style.display = 'none';
+                optgroupSfc.style.display = 'block';
+                levelSelect.value = 'surface';
+                levelSelect.disabled = true;
+                levelSelect.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            else if (variablesSoloNiveles.includes(selectedVar)) {
+                // Oculta Superficie, fuerza nivel de presión si venía de superficie
+                optgroupLevels.style.display = 'block';
+                optgroupSfc.style.display = 'none';
+                levelSelect.disabled = false;
+                levelSelect.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                // SOLO cambiamos a '2' (850 hPa, asumiendo que '2' es su valor) si estábamos en 'surface'.
+                // Si el nivel actual era un número (ej. '4' para 600hPa), lo respetamos.
+                if (nivelActual === 'surface') {
+                    // Busca la opción que tenga el texto '850 hPa' para asignarlo correctamente
+                    let opcion850 = Array.from(optgroupLevels.options).find(opt => opt.text.includes('850'));
+                    levelSelect.value = opcion850 ? opcion850.value : '0';
+                }
+            }
+            else {
+                // Variables Mixtas (muestran todos los niveles)
+                optgroupLevels.style.display = 'block';
+                optgroupSfc.style.display = 'block';
+                levelSelect.disabled = false;
+                levelSelect.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                // No alteramos levelSelect.value, se mantiene lo que el usuario tenía.
             }
         }
         actualizarMapa();
