@@ -250,7 +250,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             for (let i = 0; i < 1500; i++) state.crossSectionParticles.push(resetParticle());
 
             function animateTrails() {
-                if (!isCrossSectionWindActive) return;
+                if (!state.isCrossSectionWindActive) return;
                 ctx.globalCompositeOperation = 'destination-in'; ctx.fillStyle = 'rgba(0, 0, 0, 0.90)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.globalCompositeOperation = 'source-over'; ctx.lineWidth = 1.8; ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.beginPath();
                 for (let i = 0; i < state.crossSectionParticles.length; i++) {
@@ -268,12 +268,12 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             animateTrails();
 
             document.getElementById('btn-toggle-cross-wind').addEventListener('click', function() {
-                isCrossSectionWindActive = !isCrossSectionWindActive;
-                if (isCrossSectionWindActive) { this.innerText = "⏸️ Ocultar Estelas"; this.classList.replace('opacity-50', 'opacity-80'); animateTrails(); }
+                state.isCrossSectionWindActive = !state.isCrossSectionWindActive;
+                if (state.isCrossSectionWindActive) { this.innerText = "⏸️ Ocultar Estelas"; this.classList.replace('opacity-50', 'opacity-80'); animateTrails(); }
                 else { this.innerText = "▶️ Mostrar Estelas"; this.classList.replace('opacity-80', 'opacity-50'); cancelAnimationFrame(crossSectionAnimId); ctx.clearRect(0, 0, canvas.width, canvas.height); }
             });
-        });
-    } catch (err) { console.error(err); container.innerHTML = `<div class="text-red-600 bg-red-100 p-4 rounded-lg font-bold">⚠️ Error: ${err.message}</div>`; }
+            });
+            } catch (err) { console.error(err); container.innerHTML = `<div class="text-red-600 bg-red-100 p-4 rounded-lg font-bold">⚠️ Error: ${err.message}</div>`; }
 }
 
 // ==========================================
