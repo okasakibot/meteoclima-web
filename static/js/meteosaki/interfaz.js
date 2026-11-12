@@ -263,18 +263,18 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                     if (!pt.isNew) { ctx.moveTo(oldX_pix, oldY_pix); ctx.lineTo(gd._fullLayout.margin.l + gd._fullLayout.xaxis.c2p(pt.x), gd._fullLayout.margin.t + gd._fullLayout.yaxis.c2p(pt.p)); }
                     pt.isNew = false;
                 }
-                ctx.stroke(); crossSectionAnimId = requestAnimationFrame(animateTrails);
+                ctx.stroke(); state.crossSectionAnimId = requestAnimationFrame(animateTrails);
             }
             animateTrails();
 
             document.getElementById('btn-toggle-cross-wind').addEventListener('click', function() {
                 state.isCrossSectionWindActive = !state.isCrossSectionWindActive;
                 if (state.isCrossSectionWindActive) { this.innerText = "⏸️ Ocultar Estelas"; this.classList.replace('opacity-50', 'opacity-80'); animateTrails(); }
-                else { this.innerText = "▶️ Mostrar Estelas"; this.classList.replace('opacity-80', 'opacity-50'); cancelAnimationFrame(crossSectionAnimId); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+                else { this.innerText = "▶️ Mostrar Estelas"; this.classList.replace('opacity-80', 'opacity-50'); cancelAnimationFrame(state.crossSectionAnimId); ctx.clearRect(0, 0, canvas.width, canvas.height); }
             });
             });
             } catch (err) { console.error(err); container.innerHTML = `<div class="text-red-600 bg-red-100 p-4 rounded-lg font-bold">⚠️ Error: ${err.message}</div>`; }
-}
+            }
 
 // ==========================================
 // 4. EVENTOS DOM (UI)
