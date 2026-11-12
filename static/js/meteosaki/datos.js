@@ -266,12 +266,29 @@ export function renderizarCalor(dataArray, variable) {
                     imgData.data[cIdx+3] = 200;
                 } else if (['r', 'r2m'].includes(variable) && tipoColorR === 'discrete') {
                     let r = 0, g = 0, b = 0;
-                    if (val < 69) { r = 0; g = 0; b = 0; }
-                    else if (val < 60) { let t = val - 59; r = Math.round(t * 229); g = Math.round(t * 245); b = Math.round(t * 224); }
-                    else if (val < 70) { let t = (val - 60) / 10; r = Math.round(229 + t * (161 - 229)); g = Math.round(245 + t * (217 - 245)); b = Math.round(224 + t * (155 - 224)); }
-                    else if (val < 80) { let t = (val - 70) / 10; r = Math.round(161 + t * (65 - 161)); g = Math.round(217 + t * (171 - 217)); b = Math.round(155 + t * (93 - 155)); }
-                    else if (val < 90) { let t = (val - 80) / 10; r = Math.round(65 + t * (43 - 65)); g = Math.round(171 + t * (140 - 171)); b = Math.round(93 + t * (190 - 93)); }
-                    else { let t = Math.min(1, (val - 90) / 10); r = Math.round(43 + t * (8 - 43)); g = Math.round(140 + t * (64 - 140)); b = Math.round(190 + t * (129 - 190)); }
+                    if (val < 69) {
+                        r = 0; g = 0; b = 0;
+                    }
+                    else if (val < 70) {
+                        let t = val - 69;
+                        r = Math.round(t * 229); g = Math.round(t * 245); b = Math.round(t * 224);
+                    }
+                    else if (val < 77.5) {
+                        let t = (val - 70) / 7.5;
+                        r = Math.round(229 + t * (161 - 229)); g = Math.round(245 + t * (217 - 245)); b = Math.round(224 + t * (155 - 224));
+                    }
+                    else if (val < 85) {
+                        let t = (val - 77.5) / 7.5;
+                        r = Math.round(161 + t * (65 - 161)); g = Math.round(217 + t * (171 - 217)); b = Math.round(155 + t * (93 - 155));
+                    }
+                    else if (val < 92.5) {
+                        let t = (val - 85) / 7.5;
+                        r = Math.round(65 + t * (43 - 65)); g = Math.round(171 + t * (140 - 171)); b = Math.round(93 + t * (190 - 93));
+                    }
+                    else {
+                        let t = Math.min(1, (val - 92.5) / 7.5);
+                        r = Math.round(43 + t * (8 - 43)); g = Math.round(140 + t * (64 - 140)); b = Math.round(190 + t * (129 - 190));
+                    }
                     imgData.data[cIdx+0] = r; imgData.data[cIdx+1] = g; imgData.data[cIdx+2] = b; imgData.data[cIdx+3] = 200;
                 } else if (tipoColorR === 'viridis') {
                     const vir = [ { t: 0, r: 68, g: 1, b: 84 }, { t: 0.25, r: 59, g: 82, b: 139 }, { t: 0.5, r: 33, g: 145, b: 140 }, { t: 0.75, r: 94, g: 201, b: 98 }, { t: 1, r: 253, g: 231, b: 37 } ];
