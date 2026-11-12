@@ -247,14 +247,14 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             }
 
             function resetParticle(p = {}) { p.x = xMin + Math.random() * (xMax - xMin); p.p = pMin + Math.random() * (pMax - pMin); p.age = 0; p.lifespan = 30 + Math.random() * 60; p.isNew = true; return p; }
-            for (let i = 0; i < 1500; i++) crossSectionParticles.push(resetParticle());
+            for (let i = 0; i < 1500; i++) state.crossSectionParticles.push(resetParticle());
 
             function animateTrails() {
                 if (!isCrossSectionWindActive) return;
                 ctx.globalCompositeOperation = 'destination-in'; ctx.fillStyle = 'rgba(0, 0, 0, 0.90)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.globalCompositeOperation = 'source-over'; ctx.lineWidth = 1.8; ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.beginPath();
-                for (let i = 0; i < crossSectionParticles.length; i++) {
-                    let pt = crossSectionParticles[i];
+                for (let i = 0; i < state.crossSectionParticles.length; i++) {
+                    let pt = state.crossSectionParticles[i];
                     let oldX_pix = gd._fullLayout.margin.l + gd._fullLayout.xaxis.c2p(pt.x); let oldY_pix = gd._fullLayout.margin.t + gd._fullLayout.yaxis.c2p(pt.p);
                     let wind = getWindAt(pt.x, pt.p); pt.x += wind.u * 0.003; pt.p += wind.w * 0.3; pt.age++;
                     let topoIdxFloat = (pt.x - xMin) / (xMax - xMin) * (numPoints - 1); let idxInt = Math.floor(Math.max(0, Math.min(topoIdxFloat, numPoints - 2)));
