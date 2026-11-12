@@ -423,6 +423,23 @@ export function initUI() {
         document.getElementById('btn-show-ui').classList.add('hidden');
     });
 
+    // ==========================================
+    // Eventos del Modal de Niveles de Pronosticador
+    // ==========================================
+    document.getElementById('btn-info-niveles')?.addEventListener('click', () => {
+        document.getElementById('modal-niveles').classList.remove('hidden');
+    });
+
+    // Cerrar con la "X" superior
+    document.getElementById('btn-cerrar-niveles')?.addEventListener('click', () => {
+        document.getElementById('modal-niveles').classList.add('hidden');
+    });
+
+    // Cerrar con el botón "Entendido" inferior
+    document.getElementById('btn-entendido-niveles')?.addEventListener('click', () => {
+        document.getElementById('modal-niveles').classList.add('hidden');
+    });
+
     const btnWind = document.getElementById('btn-wind-toggle');
     btnWind?.addEventListener('click', () => {
         state.isWindActive = !state.isWindActive;
