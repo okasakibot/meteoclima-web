@@ -1,6 +1,6 @@
 // static/js/auth.js
 
-import { signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Importamos el estado global y las instancias de Firebase
@@ -71,7 +71,7 @@ export function initAuth() {
                     if (profileUI) profileUI.classList.remove('hidden');
 
                     sesionIniciada = true;
-                    
+
                     // --- Disparadores Iniciales del Mapa ---
                     actualizarTextosFecha(0);
                     cargarMapaBase(document.getElementById('config-basemap')?.value || 'terrain-esri');
@@ -97,7 +97,14 @@ export function initAuth() {
 
     // 2. Botón de Cerrar Sesión
     document.getElementById('btn-logout')?.addEventListener('click', () => {
-        auth.signOut().then(() => window.location.reload());
+        document.getElementById('btn-logout').innerText = "Saliendo...";
+        signOut(auth).then(() => {
+            // Recargamos la página para limpiar memoria, mapas y variables
+            window.location.reload();
+        }).catch((error) => {
+            console.error("Error al cerrar sesión:", error);
+            document.getElementById('btn-logout').innerText = "Error";
+        });
     });
 
     // 3. Botón de Iniciar Sesión (Popup de Google)

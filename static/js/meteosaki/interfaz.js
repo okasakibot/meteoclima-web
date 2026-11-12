@@ -386,7 +386,7 @@ export function initUI() {
                 if (nivelActual === 'surface') {
                     // Busca la opción que tenga el texto '850 hPa' para asignarlo correctamente
                     let opcion850 = Array.from(optgroupLevels.options).find(opt => opt.text.includes('850'));
-                    levelSelect.value = opcion850 ? opcion850.value : '0';
+                    levelSelect.value = opcion850 ? opcion850.value : '2';
                 }
             }
             else {
@@ -404,12 +404,23 @@ export function initUI() {
 
     document.getElementById('level-select')?.addEventListener('change', actualizarMapa);
 
-    // Botones de interfaz y viento
+    // Botones de interfaz para ocultar/mostrar paneles
     document.getElementById('btn-hide-ui')?.addEventListener('click', () => {
-        document.getElementById('bottom-bar').classList.add('translate-y-full'); document.getElementById('btn-show-ui').classList.remove('hidden');
+        // Ocultar barra inferior
+        document.getElementById('bottom-bar').classList.add('translate-y-full');
+        // Ocultar panel derecho (Perfil y Cronograma)
+        document.getElementById('right-panel').classList.add('opacity-0', 'pointer-events-none');
+        // Mostrar el botón de restaurar
+        document.getElementById('btn-show-ui').classList.remove('hidden');
     });
+
     document.getElementById('btn-show-ui')?.addEventListener('click', () => {
-        document.getElementById('bottom-bar').classList.remove('translate-y-full'); document.getElementById('btn-show-ui').classList.add('hidden');
+        // Restaurar barra inferior
+        document.getElementById('bottom-bar').classList.remove('translate-y-full');
+        // Restaurar panel derecho (Perfil y Cronograma)
+        document.getElementById('right-panel').classList.remove('opacity-0', 'pointer-events-none');
+        // Ocultar el botón de restaurar
+        document.getElementById('btn-show-ui').classList.add('hidden');
     });
 
     const btnWind = document.getElementById('btn-wind-toggle');
