@@ -47,18 +47,18 @@ export const escalas = {
     'w': { min: 0, max: 40, unit: ' m/s', name: 'Velocidad del Viento', repo: 'data1' },
     'q': { min: 0, max: 20, unit: ' g/kg', name: 'Humedad Específica', repo: 'data1' },
     't2m': { min: -10, max: 40, unit: '°C', name: 'Temp a 2m', repo: 'data1' },
-    'tp': { min: 0, max: 50, unit: ' mm', name: 'Precipitación Total', repo: 'data1' },
-    'msl': { min: 950, max: 1050, unit: ' hPa', name: 'Presión al Nivel del Mar', repo: 'data1' },
-    'vo': { min: -0.0001, max: 0.0001, unit: ' /s', name: 'Vorticidad relativa', repo: 'data2' },
-    'd': { min: -0.0001, max: 0.0001, unit: ' /s', name: 'Divergencia', repo: 'data2' },
+    'tp': { min: 0, max: 50, unit: ' mm/3h', name: 'Precipitación Total', repo: 'data1' },
+    'msl': { min: 970, max: 1020, unit: ' hPa', name: 'Presión al Nivel del Mar', repo: 'data1' },
+    'vo': { min: -1, max: 1, unit: ' 1/3h', name: 'Vorticidad relativa', repo: 'data2' },
+    'd': { min: -1, max: 1, unit: ' 1/3h', name: 'Divergencia', repo: 'data2' },
     'r2m': { min: 0, max: 100, unit: '%', name: 'HR a 2m', repo: 'data2' },
     'q2m': { min: 0, max: 20, unit: ' g/kg', name: 'Humedad Específica a 2m', repo: 'data2' },
-    'conv_q': { min: -0.001, max: 0.001, unit: ' (g/kg)/s', name: 'Conv. de Humedad', repo: 'data2' },
-    'adv_q': { min: -0.001, max: 0.001, unit: ' (g/kg)/s', name: 'Adv. de Humedad', repo: 'data2' },
-    'adv_t': { min: -0.001, max: 0.001, unit: ' °C/s', name: 'Adv. de Temperatura', repo: 'data2' },
-    'conv_q2m': { min: -0.001, max: 0.001, unit: ' (g/kg)/s', name: 'Conv. HR (Sup)', repo: 'data2' },
-    'adv_q2m': { min: -0.001, max: 0.001, unit: ' (g/kg)/s', name: 'Adv. HR (Sup)', repo: 'data2' },
-    'adv_t2m': { min: -0.001, max: 0.001, unit: ' °C/s', name: 'Adv. Temp (Sup)', repo: 'data2' }
+    'conv_q': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. de Humedad', repo: 'data2' },
+    'adv_q': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Adv. de Humedad', repo: 'data2' },
+    'adv_t': { min: -8, max: 8, unit: ' °C/3h', name: 'Adv. de Temperatura', repo: 'data2' },
+    'conv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. HR (Sup)', repo: 'data2' },
+    'adv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Adv. HR (Sup)', repo: 'data2' },
+    'adv_t2m': { min: -8, max: 8, unit: ' °C/3h', name: 'Adv. Temp (Sup)', repo: 'data2' }
 };
 
 export const traductorSuperficie = {
@@ -73,19 +73,19 @@ export const state = {
     // Autenticación y Criptografía
     cryptoKey: null,
     fechaActual: "",
-    
+
     // Configuración y Capas del Mapa
     isWindActive: true,
     windLayer: null,
     heatLayer: null,
     currentBaseMapLayer: null,
     currentLabelsLayer: null,
-    
+
     // Arrays de Datos Temporales
     currentBaseArray: null,
     currentUArray: null,
     currentVArray: null,
-    
+
     // Interacción de Corte Transversal
     isSelectingCrossSection: false,
     crossSectionPoints: [],
@@ -94,7 +94,7 @@ export const state = {
     crossSectionAnimId: null,
     crossSectionParticles: [],
     isCrossSectionWindActive: true,
-    
+
     // Variables de Paleta Personalizada
     customPaletteStops: null,
     customPaletteMin: 0,

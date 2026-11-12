@@ -359,15 +359,18 @@ export function initUI() {
             }
         }
 
+        // 1. Clasificación de Variables
         const variablesSoloSuperficie = ['t2m', 'tp', 'msl'];
+        // Ahora clasificamos las mixtas y las puramente 3D por separado para mayor claridad
+        const variablesMixtas = ['w', 'r', 'q', 'conv_q', 'adv_q', 'adv_t'];
         const variablesSoloNiveles = ['vo', 'd'];
 
         if(levelSelect && optgroupLevels && optgroupSfc) {
-            // Guardamos el nivel actual antes de aplicar cambios
+            // Guardamos el nivel actual para saber de dónde venimos
             const nivelActual = levelSelect.value;
 
             if (variablesSoloSuperficie.includes(selectedVar)) {
-                // Bloquea en Superficie
+                // Caso A: Seleccionó una variable estrictamente de superficie (ej. Temp a 2m)
                 optgroupLevels.style.display = 'none';
                 optgroupSfc.style.display = 'block';
                 levelSelect.value = 'surface';
@@ -375,30 +378,34 @@ export function initUI() {
                 levelSelect.classList.add('opacity-50', 'cursor-not-allowed');
             }
             else if (variablesSoloNiveles.includes(selectedVar)) {
-                // Oculta Superficie, fuerza nivel de presión si venía de superficie
+                // Caso B: Seleccionó una variable estrictamente 3D (ej. Vorticidad)
                 optgroupLevels.style.display = 'block';
                 optgroupSfc.style.display = 'none';
                 levelSelect.disabled = false;
                 levelSelect.classList.remove('opacity-50', 'cursor-not-allowed');
 
-                // SOLO cambiamos a '2' (850 hPa, asumiendo que '2' es su valor) si estábamos en 'surface'.
-                // Si el nivel actual era un número (ej. '4' para 600hPa), lo respetamos.
+                // REGLA SOLICITADA: Si venía de 'surface' (ya sea porque estaba viendo
+                // una variable de superficie pura o una mixta en superficie), saltar a 850 hPa.
                 if (nivelActual === 'surface') {
-                    // Busca la opción que tenga el texto '850 hPa' para asignarlo correctamente
                     let opcion850 = Array.from(optgroupLevels.options).find(opt => opt.text.includes('850'));
                     levelSelect.value = opcion850 ? opcion850.value : '2';
                 }
+                // Si el nivelActual ya era un número (ej. '4' que es 600hPa), no se hace nada
+                // y se mantiene ese nivel.
             }
-            else {
-                // Variables Mixtas (muestran todos los niveles)
+            else if (variablesMixtas.includes(selectedVar)) {
+                // Caso C: Seleccionó una variable mixta (ej. Viento, que puede ser 3D o Surface)
                 optgroupLevels.style.display = 'block';
                 optgroupSfc.style.display = 'block';
                 levelSelect.disabled = false;
                 levelSelect.classList.remove('opacity-50', 'cursor-not-allowed');
 
-                // No alteramos levelSelect.value, se mantiene lo que el usuario tenía.
+                // En este caso, como la variable admite todos los niveles (incluido 'surface'),
+                // simplemente dejamos el levelSelect.value tal como está, sin forzar cambios.
             }
         }
+
+        // Ejecutamos la actualización del mapa con los nuevos parámetros
         actualizarMapa();
     });
 
