@@ -1,10 +1,10 @@
 // static/js/datos.js
 
-import { 
-    state, escalas, traductorSuperficie, 
-    latInicio, latFin, lonInicio, lonFin, dx, dy, 
-    width, height, latNorteBorde, latSurBorde, 
-    lonOesteBorde, lonEsteBorde, limitesData 
+import {
+    state, escalas, traductorSuperficie,
+    latInicio, latFin, lonInicio, lonFin, dx, dy,
+    width, height, latNorteBorde, latSurBorde,
+    lonOesteBorde, lonEsteBorde, limitesData
 } from './config.js';
 
 import { map } from './mapa.js';
@@ -101,21 +101,21 @@ export async function actualizarMapa() {
 
         // Actualizamos el estado global
         state.currentBaseArray = baseArray;
-        if (requiereViento) { 
-            state.currentUArray = uArray; 
-            state.currentVArray = vArray; 
-        } else { 
-            state.currentUArray = null; 
-            state.currentVArray = null; 
+        if (requiereViento) {
+            state.currentUArray = uArray;
+            state.currentVArray = vArray;
+        } else {
+            state.currentUArray = null;
+            state.currentVArray = null;
         }
 
         if (baseArray) renderizarCalor(baseArray, variable);
 
         if (state.isWindActive && uArray && vArray) {
             renderizarViento(uArray, vArray);
-        } else if (state.windLayer) { 
-            map.removeLayer(state.windLayer); 
-            state.windLayer = null; 
+        } else if (state.windLayer) {
+            map.removeLayer(state.windLayer);
+            state.windLayer = null;
         }
 
     } catch (error) {
@@ -266,7 +266,7 @@ export function renderizarCalor(dataArray, variable) {
                     imgData.data[cIdx+3] = 200;
                 } else if (['r', 'r2m'].includes(variable) && tipoColorR === 'discrete') {
                     let r = 0, g = 0, b = 0;
-                    if (val < 59) { r = 0; g = 0; b = 0; }
+                    if (val < 69) { r = 0; g = 0; b = 0; }
                     else if (val < 60) { let t = val - 59; r = Math.round(t * 229); g = Math.round(t * 245); b = Math.round(t * 224); }
                     else if (val < 70) { let t = (val - 60) / 10; r = Math.round(229 + t * (161 - 229)); g = Math.round(245 + t * (217 - 245)); b = Math.round(224 + t * (155 - 224)); }
                     else if (val < 80) { let t = (val - 70) / 10; r = Math.round(161 + t * (65 - 161)); g = Math.round(217 + t * (171 - 217)); b = Math.round(155 + t * (93 - 155)); }
@@ -306,9 +306,9 @@ export function renderizarCalor(dataArray, variable) {
     ctx.putImageData(imgData, 0, 0);
     if(state.heatLayer) map.removeLayer(state.heatLayer);
 
-    state.heatLayer = L.imageOverlay(canvas.toDataURL(), limitesData, { 
-        opacity: opacidadGlobal, 
-        className: 'smooth-layer', 
-        pane: 'heatPane' 
+    state.heatLayer = L.imageOverlay(canvas.toDataURL(), limitesData, {
+        opacity: opacidadGlobal,
+        className: 'smooth-layer',
+        pane: 'heatPane'
     }).addTo(map);
 }

@@ -229,17 +229,17 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             [0.00, 'rgb(0,0,0)'],     // 0% a 59.9% es negro absoluto
             [0.599, 'rgb(0,0,0)'],
 
-            [0.60, 'rgb(229,245,224)'], // 60% a 69.9% (Verde muy claro / Crema)
-            [0.699, 'rgb(229,245,224)'],
+            [0.60, 'rgb(0,0,0)'], // 60% a 69.9% (Verde muy claro / Crema)
+            [0.699, 'rgb(0,0,0)'],
 
-            [0.70, 'rgb(161,217,155)'], // 70% a 79.9% (Verde claro)
-            [0.799, 'rgb(161,217,155)'],
+            [0.70, 'rgb(250,204,21)'], // 70% a 79.9% (Verde claro)
+            [0.799, 'rgb(250,204,21)'],
 
-            [0.80, 'rgb(65,171,93)'],   // 80% a 89.9% (Verde oscuro)
-            [0.899, 'rgb(65,171,93)'],
+            [0.80, 'rgb(34,197,94)'],   // 80% a 89.9% (Verde oscuro)
+            [0.899, 'rgb(34,197,94)'],
 
-            [0.90, 'rgb(43,140,190)'],  // 90% a 100% (Azul oscuro)
-            [1.00, 'rgb(43,140,190)']
+            [0.90, 'rgb(59,130,246)'],  // 90% a 100% (Azul oscuro)
+            [1.00, 'rgb(59,130,246)']
         ];
 
         const traceR = {
@@ -257,7 +257,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             },
             contours: {
                 showlines: false,
-                coloring: 'heatmap' // <-- CRUCIAL: Fuerza el renderizado por bloques de color sin suavizar los bordes
+                //coloring: 'heatmap' // <-- CRUCIAL: Fuerza el renderizado por bloques de color sin suavizar los bordes
             },
             connectgaps: false,
             hoverinfo: 'x+y+z'
