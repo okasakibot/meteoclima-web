@@ -224,24 +224,6 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
 
         container.innerHTML = `<div id="plot-container" class="w-full h-full absolute top-0 left-0 z-10 bg-[#000000]"></div><canvas id="wind-canvas" class="w-full h-full absolute top-0 left-0 z-20 pointer-events-none"></canvas><button id="btn-toggle-cross-wind" class="absolute top-4 right-4 z-30 px-3 py-1 bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded shadow-lg opacity-80 hover:opacity-100 transition">⏸️ Ocultar Estelas</button>`;
 
-        // 1. Definir una escala de colores de pasos duros (sin suavizado entre rangos)
-        const rhColorscale = [
-            [0.00, 'rgb(0,0,0)'],     // 0% a 59.9% es negro absoluto
-            [0.599, 'rgb(0,0,0)'],
-
-            [0.60, 'rgb(0,0,0)'], // 60% a 69.9% (Verde muy claro / Crema)
-            [0.699, 'rgb(0,0,0)'],
-
-            [0.70, 'rgb(250,204,21)'], // 70% a 79.9% (Verde claro)
-            [0.799, 'rgb(250,204,21)'],
-
-            [0.80, 'rgb(34,197,94)'],   // 80% a 89.9% (Verde oscuro)
-            [0.899, 'rgb(34,197,94)'],
-
-            [0.90, 'rgb(59,130,246)'],  // 90% a 100% (Azul oscuro)
-            [1.00, 'rgb(59,130,246)']
-        ];
-
         const traceR = {
             z: zMatrix,
             x: ejeX,
@@ -249,7 +231,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             type: 'contour',
             zmin: 0,
             zmax: 100,
-            colorscale: rhColorscale, // <-- Usamos la nueva escala definida
+            colorscale: [[0.0, 'black'], [0.7, 'yellow'], [0.85, 'green'], [1.0, 'blue']]
             colorbar: {
                 title: 'Humedad Relativa (%)',
                 tickfont: {color: 'white'},
