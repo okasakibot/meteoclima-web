@@ -768,7 +768,6 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                       rVal = rRaw;
                       projU = (resultadosNiveles[lvl][1][idx] * unitX) + (resultadosNiveles[lvl][2][idx] * unitY);
                       wVal = resultadosNiveles[lvl][3][idx] * 15.0;
-                        }
                     }
                 }
                 filaR.push(rVal);
