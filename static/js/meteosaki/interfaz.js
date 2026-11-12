@@ -387,7 +387,7 @@ export function initUI() {
                 // REGLA SOLICITADA: Si venía de 'surface' (ya sea porque estaba viendo
                 // una variable de superficie pura o una mixta en superficie), saltar a 850 hPa.
                 if (nivelActual === 'surface') {
-                    let opcion850 = Array.from(optgroupLevels.options).find(opt => opt.text.includes('850'));
+                    let opcion850 = Array.from(optgroupLevels.children).find(opt => opt.text.includes('850'));
                     levelSelect.value = opcion850 ? opcion850.value : '2';
                 }
                 // Si el nivelActual ya era un número (ej. '4' que es 600hPa), no se hace nada
