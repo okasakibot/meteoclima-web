@@ -231,7 +231,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             type: 'contour',
             zmin: 0,
             zmax: 100,
-            colorscale: [[0.0, 'black'], [0.7, 'yellow'], [0.85, 'green'], [1.0, 'blue']]
+            colorscale: [[0.0, 'black'], [0.7, 'yellow'], [0.85, 'green'], [1.0, 'blue']],
             colorbar: {
                 title: 'Humedad Relativa (%)',
                 tickfont: {color: 'white'},
