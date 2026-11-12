@@ -224,7 +224,44 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
 
         container.innerHTML = `<div id="plot-container" class="w-full h-full absolute top-0 left-0 z-10 bg-[#000000]"></div><canvas id="wind-canvas" class="w-full h-full absolute top-0 left-0 z-20 pointer-events-none"></canvas><button id="btn-toggle-cross-wind" class="absolute top-4 right-4 z-30 px-3 py-1 bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded shadow-lg opacity-80 hover:opacity-100 transition">⏸️ Ocultar Estelas</button>`;
 
-        const traceR = { z: zMatrix, x: ejeX, y: validNiveles, type: 'contour', zmin: 0, zmax: 100, colorscale: [[0.0, 'black'], [0.6, 'black'], [0.6, 'yellow'], [0.8, 'green'], [1.0, 'blue']], colorbar: { title: 'Humedad Relativa (%)', tickfont: {color: 'white'}, titlefont: {color: 'white'} }, contours: { showlines: false }, connectgaps: false, hoverinfo: 'x+y+z' };
+        // 1. Definir una escala de colores de pasos duros (sin suavizado entre rangos)
+        const rhColorscale = [
+            [0.00, 'rgb(0,0,0)'],     // 0% a 59.9% es negro absoluto
+            [0.599, 'rgb(0,0,0)'],
+
+            [0.60, 'rgb(229,245,224)'], // 60% a 69.9% (Verde muy claro / Crema)
+            [0.699, 'rgb(229,245,224)'],
+
+            [0.70, 'rgb(161,217,155)'], // 70% a 79.9% (Verde claro)
+            [0.799, 'rgb(161,217,155)'],
+
+            [0.80, 'rgb(65,171,93)'],   // 80% a 89.9% (Verde oscuro)
+            [0.899, 'rgb(65,171,93)'],
+
+            [0.90, 'rgb(43,140,190)'],  // 90% a 100% (Azul oscuro)
+            [1.00, 'rgb(43,140,190)']
+        ];
+
+        const traceR = {
+            z: zMatrix,
+            x: ejeX,
+            y: validNiveles,
+            type: 'contour',
+            zmin: 0,
+            zmax: 100,
+            colorscale: rhColorscale, // <-- Usamos la nueva escala definida
+            colorbar: {
+                title: 'Humedad Relativa (%)',
+                tickfont: {color: 'white'},
+                titlefont: {color: 'white'}
+            },
+            contours: {
+                showlines: false,
+                coloring: 'heatmap' // <-- CRUCIAL: Fuerza el renderizado por bloques de color sin suavizar los bordes
+            },
+            connectgaps: false,
+            hoverinfo: 'x+y+z'
+        };
         const traceTopo = { x: [...ejeX, ejeX[numPoints-1], ejeX[0]], y: [...topoY, 1000, 1000], fill: 'toself', fillcolor: '#654321', mode: 'lines', showlegend: false, hoverinfo: 'none', line: { color: '#8b5a2b', width: 2 } };
         const layout = { title: { text: `Perfil Vertical Transversal (${isLonCut ? 'Longitudinal' : 'Latitudinal'})`, font: {color: 'white'} }, plot_bgcolor: '#000000', paper_bgcolor: '#000000', yaxis: { title: 'Presión (hPa)', type: 'linear', autorange: false, range: [1000, 100], gridcolor: '#333', color: 'white', fixedrange: true }, xaxis: { title: isLonCut ? 'Longitud (°W/°E)' : 'Latitud (°S/°N)', tickformat: '.2f', gridcolor: '#333', color: 'white', fixedrange: true }, margin: { t: 50, b: 50, l: 60, r: 20 }, font: { family: 'Inter, sans-serif' } };
 
