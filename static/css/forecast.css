@@ -40,3 +40,21 @@ body, html {
     /* Opción 2: Solo aumentar el brillo significativamente (descomentar para probar) */
     /* filter: brightness(300%) contrast(200%) drop-shadow(0px 0px 2px rgba(255,255,255,0.8)); */
 }
+
+/* Sobreescritura del Modo Oscuro para los controles nativos de Leaflet */
+.leaflet-bar a,
+.leaflet-bar a:hover {
+    background-color: #1e293b !important; /* slate-800 */
+    color: #cbd5e1 !important; /* slate-300 */
+    border-bottom: 1px solid #334155 !important; /* slate-700 */
+}
+
+.leaflet-bar a.leaflet-disabled {
+    background-color: #0f172a !important; /* slate-900 */
+    color: #475569 !important; /* slate-600 */
+}
+
+.leaflet-control-zoom {
+    border: 1px solid #334155 !important; /* slate-700 */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+}

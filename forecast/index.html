@@ -59,85 +59,85 @@
     <!-- Contenedor Derecho (Perfil + Cronograma) -->
     <div id="right-panel" class="fixed top-6 right-4 z-[1000] flex flex-col gap-3 items-end transition-opacity duration-300 opacity-0 pointer-events-none">
 
-        <!-- Perfil con Sistema de Niveles -->
-        <div id="user-profile" class="hidden bg-white/95 backdrop-blur pl-2 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 border border-gray-200">
-            <!-- Icono de Nivel Dinámico -->
-            <div id="profile-level-icon" class="bg-yellow-100 rounded-full w-8 h-8 flex items-center justify-center text-lg shadow-inner cursor-help border border-yellow-300" title="Nivel Principiante">
-                🐣
-            </div>
+      <!-- Perfil con Sistema de Niveles (Modo Oscuro) -->
+      <div id="user-profile" class="hidden bg-slate-800/95 backdrop-blur pl-2 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 border border-slate-600">
+          <!-- Icono de Nivel Dinámico -->
+          <div id="profile-level-icon" class="bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center text-lg shadow-inner cursor-help border border-slate-500" title="Nivel Principiante">
+              🐣
+          </div>
 
-            <div class="flex flex-col">
-                <span id="profile-name" class="text-xs font-bold text-gray-800 leading-none mb-0.5">Cargando...</span>
-                <div class="flex items-center gap-1">
-                    <span id="profile-level-name" class="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Lvl. Pollito</span>
-                    <!-- Botón para abrir modal de rangos -->
-                    <button id="btn-info-niveles" class="text-[9px] bg-blue-100 text-blue-600 rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold hover:bg-blue-200 transition shadow-sm" title="Ver rangos de pronosticador">i</button>
-                </div>
-            </div>
+          <div class="flex flex-col">
+              <span id="profile-name" class="text-xs font-bold text-slate-200 leading-none mb-0.5">Cargando...</span>
+              <div class="flex items-center gap-1">
+                  <span id="profile-level-name" class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Lvl. Pollito</span>
+                  <!-- Botón para abrir modal de rangos -->
+                  <button id="btn-info-niveles" class="text-[9px] bg-blue-900/50 text-blue-400 rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold hover:bg-blue-800 transition shadow-sm" title="Ver rangos de pronosticador">i</button>
+              </div>
+          </div>
 
-            <!-- Foto de perfil de Google (oculta por defecto) -->
-            <img id="profile-img" src="" alt="Foto" class="hidden w-7 h-7 rounded-full ml-1 border border-gray-300">
+          <!-- Foto de perfil de Google (oculta por defecto) -->
+          <img id="profile-img" src="" alt="Foto" class="hidden w-7 h-7 rounded-full ml-1 border border-slate-500">
 
-            <button id="btn-logout" class="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded font-bold hover:bg-red-200 transition ml-1">Salir</button>
-        </div>
+          <button id="btn-logout" class="text-[10px] bg-red-900/40 text-red-400 px-2 py-1 rounded font-bold hover:bg-red-800/60 transition ml-1 border border-red-800/50">Salir</button>
+      </div>
 
         <button id="btn-cronograma" onclick="window.open('cronograma.html', '_blank')" class="hidden px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-full hover:bg-emerald-700 transition flex items-center shadow-md border border-emerald-500">
             🗓️ Cronograma
         </button>
     </div>
 
-    <!-- Modal de Niveles de Pronosticador -->
-    <div id="modal-niveles" class="hidden fixed inset-0 bg-black/60 z-[10500] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div class="bg-blue-700 text-white px-5 py-3 flex justify-between items-center shadow-md">
+    <!-- Modal de Niveles de Pronosticador (Modo Oscuro) -->
+    <div id="modal-niveles" class="hidden fixed inset-0 bg-black/70 z-[10500] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-600">
+            <div class="bg-slate-900 text-white px-5 py-3 flex justify-between items-center shadow-md border-b border-slate-700">
                 <h2 class="text-lg font-bold flex items-center gap-2">🏆 Rangos de Pronosticador</h2>
-                <button id="btn-cerrar-niveles" class="text-white hover:text-blue-200 font-bold text-2xl transition-colors">&times;</button>
+                <button id="btn-cerrar-niveles" class="text-slate-400 hover:text-red-400 font-bold text-2xl transition-colors">&times;</button>
             </div>
             <div class="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
-                <p class="text-sm text-gray-600 mb-3 font-medium text-center">La práctica hace al maestro.</p>
+                <p class="text-sm text-slate-400 mb-3 font-medium text-center">La práctica hace al maestro.</p>
 
-                <div class="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div class="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
                     <div class="text-3xl drop-shadow-sm shrink-0">🐣</div>
                     <div>
-                        <h3 class="font-bold text-yellow-800 text-sm mb-1">1. Pollito (Principiante)</h3>
-                        <p class="text-[11px] text-gray-700 leading-snug">Aún tiene vida social, amigos y fe en la humanidad. Cree ingenuamente que un pronóstico puede ser 100% exacto y se frustra cuando el modelo falla.</p>
+                        <h3 class="font-bold text-slate-200 text-sm mb-1">1. Pollito (Principiante)</h3>
+                        <p class="text-[11px] text-slate-400 leading-snug">Aún tiene vida social, amigos y fe en la humanidad. Cree ingenuamente que un pronóstico puede ser 100% exacto y se frustra cuando el modelo falla.</p>
                     </div>
                 </div>
 
-                <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
                     <div class="text-3xl drop-shadow-sm shrink-0">🦉</div>
                     <div>
-                        <h3 class="font-bold text-gray-700 text-sm mb-1">2. Búho (Observador)</h3>
-                        <p class="text-[11px] text-gray-700 leading-snug">Empieza a trasnochar vigilando vaguadas. Aún responde mensajes de WhatsApp, pero ya aburre a sus amigos hablando de la humedad relativa a las 3 AM.</p>
+                        <h3 class="font-bold text-slate-200 text-sm mb-1">2. Búho (Observador)</h3>
+                        <p class="text-[11px] text-slate-400 leading-snug">Empieza a trasnochar vigilando vaguadas. Aún responde mensajes de WhatsApp, pero ya aburre a sus amigos hablando de la humedad relativa a las 3 AM.</p>
                     </div>
                 </div>
 
-                <div class="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <div class="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
                     <div class="text-3xl drop-shadow-sm shrink-0">🦊</div>
                     <div>
-                        <h3 class="font-bold text-orange-800 text-sm mb-1">3. Zorro (Astuto)</h3>
-                        <p class="text-[11px] text-gray-700 leading-snug">Entiende que a 27 km de resolución los microclimas no existen (al igual que sus planes de fin de semana). Esquiva errores a 48 horas con pura astucia.</p>
+                        <h3 class="font-bold text-slate-200 text-sm mb-1">3. Zorro (Astuto)</h3>
+                        <p class="text-[11px] text-slate-400 leading-snug">Entiende que a 27 km de resolución los microclimas no existen (al igual que sus planes de fin de semana). Esquiva errores a 48 horas con pura astucia.</p>
                     </div>
                 </div>
 
-                <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-300">
+                <div class="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
                     <div class="text-3xl drop-shadow-sm shrink-0">🦅</div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-sm mb-1">4. Águila (Experimentado)</h3>
-                        <p class="text-[11px] text-gray-700 leading-snug">Visión sinóptica impecable a corto plazo. Su precisión es alta, pero su empatía es nula. Ve a las personas como simples perturbaciones en el flujo zonal.</p>
+                        <h3 class="font-bold text-slate-200 text-sm mb-1">4. Águila (Experimentado)</h3>
+                        <p class="text-[11px] text-slate-400 leading-snug">Visión sinóptica impecable a corto plazo. Su precisión es alta, pero su empatía es nula. Ve a las personas como simples perturbaciones en el flujo zonal.</p>
                     </div>
                 </div>
 
-                <div class="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                <div class="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
                     <div class="text-3xl drop-shadow-sm shrink-0">🐉</div>
                     <div>
-                        <h3 class="font-bold text-red-800 text-sm mb-1">5. Dragón (Maestro del Clima)</h3>
-                        <p class="text-[11px] text-gray-700 leading-snug">Ermitaño absoluto. Ha aceptado que la atmósfera es un caos y la perfección no existe. No tiene amigos; solo murmura con el geopotencial en la oscuridad.</p>
+                        <h3 class="font-bold text-red-400 text-sm mb-1">5. Dragón (Maestro del Clima)</h3>
+                        <p class="text-[11px] text-slate-400 leading-snug">Ermitaño absoluto. Ha aceptado que la atmósfera es un caos y la perfección no existe. No tiene amigos; solo murmura con el geopotencial en la oscuridad.</p>
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end">
-                <button id="btn-entendido-niveles" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-sm transition shadow-sm">Entendido</button>
+            <div class="bg-slate-900 px-5 py-3 border-t border-slate-700 flex justify-end">
+                <button id="btn-entendido-niveles" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 font-bold text-sm transition shadow-sm border border-blue-500">Entendido</button>
             </div>
         </div>
     </div>
