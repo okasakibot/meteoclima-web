@@ -787,21 +787,15 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             </button>
         `;
 
-        const rhColorscale = [
-            [0.0, 'rgb(0,0,0)'], [0.6, 'rgb(0,0,0)'], [0.601, 'rgb(250,204,21)'], [0.8, 'rgb(34,197,94)'], [1.0, 'rgb(59,130,246)']
-        ];
+        //const rhColorscale = [
+        //    [0.0, 'rgb(0,0,0)'], [0.6, 'rgb(0,0,0)'], [0.601, 'rgb(250,204,21)'], [0.8, 'rgb(34,197,94)'], [1.0, 'rgb(59,130,246)']
+        //];
 
         const traceR = { z: zMatrix, x: ejeX, y: validNiveles, type: 'contour', zmin: 0, zmax: 100, colorscale: [[0.0, 'black'], [0.6, 'black'], [0.6, 'yellow'], [0.8, 'green'], [1.0, 'blue']], colorbar: { title: 'Humedad Relativa (%)', tickfont: {color: 'white'}, titlefont: {color: 'white'} }, contours: { showlines: false }, connectgaps: false, hoverinfo: 'x+y+z' };
 
         const traceTopo = { x: [...ejeX, ejeX[numPoints-1], ejeX[0]], y: [...topoY, 1000, 1000], fill: 'toself', fillcolor: '#654321', mode: 'lines', showlegend: false, hoverinfo: 'none', line: { color: '#8b5a2b', width: 2 } };
 
-        const layout = {
-            title: { text: `Perfil Vertical Transversal (${isLonCut ? 'Longitudinal' : 'Latitudinal'})`, font: {color: 'white'} },
-            plot_bgcolor: '#000000', paper_bgcolor: '#000000',
-            yaxis: { title: 'Presión (hPa)', type: 'linear', autorange: false, range: [1050, 100], gridcolor: '#333', color: 'white', fixedrange: true },
-            xaxis: { title: isLonCut ? 'Longitud (°W/°E)' : 'Latitud (°S/°N)', tickformat: '.2f', gridcolor: '#333', color: 'white', fixedrange: true },
-            margin: { t: 50, b: 50, l: 60, r: 20 }, font: { family: 'Inter, sans-serif' }
-        };
+        const layout = { title: { text: `Perfil Vertical Transversal (${isLonCut ? 'Longitudinal' : 'Latitudinal'})`, font: {color: 'white'} }, plot_bgcolor: '#000000', paper_bgcolor: '#000000', yaxis: { title: 'Presión (hPa)', type: 'linear', autorange: false, range: [1000, 100], gridcolor: '#333', color: 'white', fixedrange: true }, xaxis: { title: isLonCut ? 'Longitud (°W/°E)' : 'Latitud (°S/°N)', tickformat: '.2f', gridcolor: '#333', color: 'white', fixedrange: true }, margin: { t: 50, b: 50, l: 60, r: 20 }, font: { family: 'Inter, sans-serif' } };
 
         Plotly.newPlot('plot-container', [traceTopo, traceR], layout, {responsive: true, displayModeBar: false}).then(() => {
             const canvas = document.getElementById('wind-canvas');
