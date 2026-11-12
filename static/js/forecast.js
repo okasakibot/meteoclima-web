@@ -746,14 +746,8 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             // Mapeo riguroso de Sur a Norte (Coincide con Leaflet y el array Zarr 1D)
             let yIdx = Math.round((lats[i] - latInicio) / dy);
             let xIdx = Math.round((lons[i] - lonInicio) / dx);
-            let topohPa = 1013.25;
-            if (dataZ && yIdx >= 0 && yIdx < height && xIdx >= 0 && xIdx < width) {
-                let zVal = dataZ[yIdx * width + xIdx];
-                if(zVal !== null && !isNaN(zVal) && isFinite(zVal) && zVal < 1e20) {
-                    topohPa = zVal;
-                }
-            }
-            if(topohPa > 1013.25) topohPa = 1013.25;
+            let topohPa = 1000;
+            if (dataZ && yIdx >= 0 && yIdx < height && xIdx >= 0 && xIdx < width) topohPa = dataZ[yIdx * width + xIdx];
             topoY.push(topohPa);
         }
 
@@ -803,17 +797,9 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             [0.0, 'rgb(0,0,0)'], [0.6, 'rgb(0,0,0)'], [0.601, 'rgb(250,204,21)'], [0.8, 'rgb(34,197,94)'], [1.0, 'rgb(59,130,246)']
         ];
 
-        const traceR = {
-            z: zMatrix, x: ejeX, y: validNiveles, type: 'contour', zmin: 0, zmax: 100,
-            colorscale: rhColorscale,
-            colorbar: { title: 'Humedad Relativa (%)', tickfont: {color: 'white'}, titlefont: {color: 'white'} },
-            contours: { showlines: false }, connectgaps: false, hoverinfo: 'x+y+z'
-        };
+        const traceR = { z: zMatrix, x: ejeX, y: validNiveles, type: 'contour', zmin: 0, zmax: 100, colorscale: [[0.0, 'black'], [0.6, 'black'], [0.6, 'yellow'], [0.8, 'green'], [1.0, 'blue']], colorbar: { title: 'Humedad Relativa (%)', tickfont: {color: 'white'}, titlefont: {color: 'white'} }, contours: { showlines: false }, connectgaps: false, hoverinfo: 'x+y+z' };
 
-        const traceTopo = {
-            x: [...ejeX, ejeX[numPoints-1], ejeX[0]], y: [...topoY, 1050, 1050],
-            fill: 'tozeroy', fillcolor: '#654321', mode: 'lines', showlegend: false, hoverinfo: 'none', line: { color: '#8b5a2b', width: 2 }
-        };
+        const traceTopo = { x: [...ejeX, ejeX[numPoints-1], ejeX[0]], y: [...topoY, 1000, 1000], fill: 'toself', fillcolor: '#654321', mode: 'lines', showlegend: false, hoverinfo: 'none', line: { color: '#8b5a2b', width: 2 } };
 
         const layout = {
             title: { text: `Perfil Vertical Transversal (${isLonCut ? 'Longitudinal' : 'Latitudinal'})`, font: {color: 'white'} },
