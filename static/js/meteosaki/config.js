@@ -43,7 +43,7 @@ export const limitesData = L.latLngBounds([[latSurBorde, lonOesteBorde], [latNor
 // 3. DICCIONARIOS ESTÁTICOS
 // ==========================================
 export const escalas = {
-    'r': { min: 0, max: 100, unit: '%', name: 'Humedad Relativa', repo: 'data1' },
+    'r': { min: 0, max: 100, unit: '%', name: 'Humedad Relativa', repo: 'data2' },
     'w': { min: 0, max: 40, unit: ' m/s', name: 'Velocidad del Viento', repo: 'data1' },
     'q': { min: 0, max: 20, unit: ' g/kg', name: 'Humedad Específica', repo: 'data1' },
     't2m': { min: -10, max: 40, unit: '°C', name: 'Temp a 2m', repo: 'data1' },
@@ -57,7 +57,7 @@ export const escalas = {
     'conv_q': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. de Humedad', repo: 'data2' },
     'adv_q': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Adv. de Humedad', repo: 'data2' },
     'adv_t': { min: -8, max: 8, unit: ' °C/3h', name: 'Adv. de Temperatura', repo: 'data2' },
-    'conv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. HR (Sup)', repo: 'data2' },
+    'conv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. HR (Sup)', repo: 'data1' },
     'adv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Adv. HR (Sup)', repo: 'data2' },
     'adv_t2m': { min: -8, max: 8, unit: ' °C/3h', name: 'Adv. Temp (Sup)', repo: 'data2' }
 };
