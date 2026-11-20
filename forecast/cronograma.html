@@ -36,7 +36,7 @@
             </div>
 
             <!-- Sección de gestión de equipo -->
-            <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div class="mb-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                 <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('team-management').classList.toggle('hidden')">
                     <h2 class="text-base font-bold text-gray-700">👥 Gestión de Miembros del Equipo</h2>
                     <span class="text-gray-500 text-sm">Ver / Editar ▼</span>
@@ -53,7 +53,21 @@
                 </div>
             </div>
 
-           <!-- Botón de emergencia -->
+            <!-- Widget de selección de días laborables -->
+            <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-700">📅 Días de generación de productos Meteoclima</h2>
+                        <p class="text-xs text-gray-500">Selecciona los días activos. El cronograma se recalcula y sincroniza automáticamente.</p>
+                    </div>
+                    <div id="selector-dias-semana" class="flex flex-wrap gap-2">
+                        <!-- Casillas generadas por JS -->
+                    </div>
+                </div>
+                <p id="dias-error" class="text-red-500 text-xs hidden mt-2"></p>
+            </div>
+
+            <!-- Botón de emergencia -->
             <div class="mb-6 flex justify-end">
                 <button onclick="forzarRebalanceo()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium shadow-sm transition-colors text-sm flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -139,10 +153,23 @@
             "Lourdes", "Italo", "Diego", "Leonardo", "Maria", "Yerson", "Alexis",
         ];
 
+        // Días de la semana (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
+        const DIAS_SEMANA = [
+            { id: 1, label: "Lun" },
+            { id: 2, label: "Mar" },
+            { id: 3, label: "Mié" },
+            { id: 4, label: "Jue" },
+            { id: 5, label: "Vie" },
+            { id: 6, label: "Sáb" },
+            { id: 0, label: "Dom" },
+        ];
+        const defaultDiasLaborables = [1, 2, 3, 4, 5]; // Lunes a Viernes por defecto
+
         // Cargamos caché local primero para renderizar de inmediato
         let personas = JSON.parse(localStorage.getItem('meteoclima_personas')) || defaultPersonas;
         let overrides = JSON.parse(localStorage.getItem('meteoclima_overrides') || '{}');
         let randomSeedOffset = parseInt(localStorage.getItem('meteoclima_seed')) || 0;
+        let diasLaborables = JSON.parse(localStorage.getItem('meteoclima_dias_laborables')) || defaultDiasLaborables;
         let asignaciones = {};
 
         let db, auth, docRef;
@@ -155,7 +182,6 @@
             db = getFirestore(app);
             docRef = doc(db, 'artifacts', appId, 'public', 'data', 'cronograma_global', 'estado_actual');
 
-            // Usamos el observador nativo de caché para lectura no destructiva
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     isCloudReady = true;
@@ -176,12 +202,17 @@
                     if (data.personas) personas = data.personas;
                     if (data.overrides) overrides = data.overrides;
                     if (data.randomSeed !== undefined) randomSeedOffset = data.randomSeed;
+                    if (Array.isArray(data.diasLaborables) && data.diasLaborables.length > 0) {
+                        diasLaborables = data.diasLaborables;
+                    }
 
                     localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
                     localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
                     localStorage.setItem('meteoclima_seed', randomSeedOffset.toString());
+                    localStorage.setItem('meteoclima_dias_laborables', JSON.stringify(diasLaborables));
 
                     renderizarListaEquipo();
+                    renderizarDiasLaborables();
                     renderizarCronograma();
                 } else {
                     guardarEnNube();
@@ -195,18 +226,24 @@
             localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
             localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
             localStorage.setItem('meteoclima_seed', randomSeedOffset.toString());
+            localStorage.setItem('meteoclima_dias_laborables', JSON.stringify(diasLaborables));
 
             if (isCloudReady && auth.currentUser) {
                 try {
-                    await setDoc(docRef, { personas, overrides, randomSeed: randomSeedOffset });
+                    await setDoc(docRef, {
+                        personas,
+                        overrides,
+                        randomSeed: randomSeedOffset,
+                        diasLaborables
+                    });
                 } catch (error) {
                     console.error("Error guardando en la Nube:", error);
                 }
             }
             renderizarListaEquipo();
+            renderizarDiasLaborables();
             renderizarCronograma();
         }
-
 
         // --- LÓGICA DE SIMULACIÓN Y BALANCEO ---
 
@@ -222,7 +259,6 @@
             asignaciones = {};
             let estado = {};
 
-            // Inicializar estado con contadores específicos por tarea
             personas.forEach(p => {
                 estado[p] = {
                     count: 0,
@@ -231,12 +267,10 @@
                 };
             });
 
-            // Función auxiliar para elegir N personas balanceadas
             function pickPeople(n, day, rolName, excludeList = [], forceInclude = []) {
                 let picked = [...forceInclude];
                 let candidatos = personas.filter(p => !excludeList.includes(p) && !picked.includes(p));
 
-                // Obtener quiénes trabajaron AYER para penalizarlos hoy
                 let trabajadoresAyer = [];
                 if (day > 0 && asignaciones[day - 1]) {
                     let a = asignaciones[day - 1];
@@ -246,34 +280,27 @@
                 }
 
                 candidatos.sort((a, b) => {
-                    // 1. Evitar trabajar días consecutivos
                     let aAyer = trabajadoresAyer.includes(a) ? 1 : 0;
                     let bAyer = trabajadoresAyer.includes(b) ? 1 : 0;
                     if (aAyer !== bAyer) return aAyer - bAyer;
 
-                    // 2. Rotación de Tareas (Evita que repitan el mismo rol que ya hicieron mucho)
                     let aRol = estado[a].roles[rolName];
                     let bRol = estado[b].roles[rolName];
                     if (aRol !== bRol) return aRol - bRol;
 
-                    // 3. Equidad global de turnos (quien trabajó menos, va primero)
                     if (estado[a].count !== estado[b].count) return estado[a].count - estado[b].count;
 
-                    // 4. Descanso (quien descansó más días, va primero)
                     let descansoA = day - estado[a].lastWorked;
                     let descansoB = day - estado[b].lastWorked;
                     if (descansoA !== descansoB) return descansoB - descansoA;
 
-                    // 5. Desempate pseudo-aleatorio de alta dispersión (responde al botón de Rebalanceo)
                     return hashString(a, randomSeedOffset, day) - hashString(b, randomSeedOffset, day);
                 });
 
-                // Llenar el grupo
                 while(picked.length < n && candidatos.length > 0) {
                     picked.push(candidatos.shift());
                 }
 
-                // Fallback (por si el equipo es reducido)
                 if (picked.length < n) {
                     let fallback = personas.filter(p => !picked.includes(p));
                     fallback.sort((a, b) => (day - estado[b].lastWorked) - (day - estado[a].lastWorked));
@@ -282,7 +309,6 @@
                     }
                 }
 
-                // Actualizar contadores
                 picked.forEach(p => {
                     if (estado[p]) {
                         estado[p].count++;
@@ -294,10 +320,19 @@
             }
 
             for (let d = 0; d <= hastaDia; d++) {
+                let dateCalc = new Date(fechaInicio);
+                dateCalc.setDate(dateCalc.getDate() + d);
+                let dayOfWeek = dateCalc.getDay();
+
+                // Si el día de la semana no está habilitado, no se asignan turnos
+                if (!diasLaborables.includes(dayOfWeek)) {
+                    asignaciones[d] = null;
+                    continue;
+                }
+
                 if (overrides[d]) {
                     asignaciones[d] = overrides[d];
 
-                    // Actualizar contadores basados en la edición manual
                     let roles = ["verificacion", "pronostico", "video"];
                     roles.forEach(r => {
                         if (overrides[d][r]) {
@@ -311,21 +346,14 @@
                         }
                     });
                 } else {
-                    let dateCalc = new Date(fechaInicio);
-                    dateCalc.setDate(dateCalc.getDate() + d);
-                    let dayOfWeek = dateCalc.getDay();
-
                     let asignacionDia = { verificacion: null, pronostico: null, video: null };
                     let ocupadosHoy = [];
 
-                    // ROTACIÓN DE ASIGNACIÓN: Para evitar que el último grupo recoja "las sobras",
-                    // cambiamos el orden en que se arman los grupos cada día.
                     let ordenRoles = [
                         { nombre: "verificacion", n: 3 },
                         { nombre: "pronostico", n: 3 }
                     ];
 
-                    // Girar la lista de prioridades dependiendo del día
                     let shift = d % ordenRoles.length;
                     let ordenRotado = ordenRoles.slice(shift).concat(ordenRoles.slice(0, shift));
 
@@ -334,7 +362,6 @@
                         ocupadosHoy.push(...asignacionDia[rolObj.nombre]);
                     });
 
-                    // Video Semanal (Tiene reglas estrictas, se asigna al final)
                     if (dayOfWeek === 1) {
                         let force = [];
                         if (personas.includes("Lourdes") && !ocupadosHoy.includes("Lourdes")) force.push("Lourdes");
@@ -347,7 +374,42 @@
             }
         }
 
-        // --- EXPOSICIÓN DE FUNCIONES GLOBALES (Al usar módulo JS) ---
+        // --- EXPOSICIÓN DE FUNCIONES GLOBALES ---
+        window.renderizarDiasLaborables = function() {
+            const contenedor = document.getElementById('selector-dias-semana');
+            if (!contenedor) return;
+            contenedor.innerHTML = DIAS_SEMANA.map(d => {
+                const activo = diasLaborables.includes(d.id);
+                return `
+                    <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium cursor-pointer select-none transition-colors ${
+                        activo
+                            ? 'bg-blue-50 border-blue-400 text-blue-800'
+                            : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                    }">
+                        <input type="checkbox" ${activo ? 'checked' : ''} onchange="toggleDiaLaborable(${d.id})" class="accent-blue-600 rounded cursor-pointer">
+                        <span>${d.label}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        window.toggleDiaLaborable = function(diaId) {
+            const errorMsg = document.getElementById('dias-error');
+            if (diasLaborables.includes(diaId)) {
+                if (diasLaborables.length <= 1) {
+                    errorMsg.innerText = "Debe quedar al menos un día laborable seleccionado.";
+                    errorMsg.classList.remove('hidden');
+                    renderizarDiasLaborables(); // Restaura el checkbox
+                    return;
+                }
+                diasLaborables = diasLaborables.filter(d => d !== diaId);
+            } else {
+                diasLaborables.push(diaId);
+            }
+            errorMsg.classList.add('hidden');
+            guardarEnNube();
+        }
+
         window.renderizarListaEquipo = function() {
             const contenedor = document.getElementById('lista-equipo-activa');
             if(!contenedor) return;
@@ -435,6 +497,8 @@
                 if (diffDias < 0) continue;
 
                 let asig = asignaciones[diffDias];
+                if (!asig) continue; // Omitir días no laborables
+
                 let modificadoHTML = overrides[diffDias] ? `<div class="mt-2"><span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Día Editado Manualmente</span></div>` : '';
 
                 let gruposHTML = "";
@@ -507,12 +571,10 @@
 
             let asigActual = asignaciones[diffDias] || { verificacion: [], pronostico: [], video: null };
 
-            // Determinar si el día seleccionado es lunes
             let dateCalc = new Date(fechaInicio);
             dateCalc.setDate(dateCalc.getDate() + diffDias);
             esLunesEditando = (dateCalc.getDay() === 1);
 
-            // Función para generar desplegables rápidamente
             function generarSelects(titulo, color, idPrefix, cantidad, seleccionados) {
                 const colorClasses = {
                     red: { border: "border-red-200", bg: "bg-red-50", text: "text-red-800" },
@@ -572,7 +634,6 @@
                 return arr;
             }
 
-            // 1. Recolectar Verificación
             nuevaAsignacion.verificacion = recolectar("sel_ver", 3);
             if (nuevaAsignacion.verificacion.length !== 3) {
                 errorMsg.innerText = "Faltan asignar miembros en 'Verificación y Reporte' (Debe ser 3).";
@@ -580,7 +641,6 @@
                 return;
             }
 
-            // 2. Recolectar Pronóstico
             nuevaAsignacion.pronostico = recolectar("sel_pro", 3);
             if (nuevaAsignacion.pronostico.length !== 3) {
                 errorMsg.innerText = "Faltan asignar miembros en 'Pronóstico' (Debe ser 3).";
@@ -588,7 +648,6 @@
                 return;
             }
 
-            // 3. Recolectar Video (Solo Lunes)
             if (esLunesEditando) {
                 nuevaAsignacion.video = recolectar("sel_vid", 3);
                 if (nuevaAsignacion.video.length !== 3) {
@@ -598,7 +657,6 @@
                 }
             }
 
-            // VALIDACIÓN: Evitar que una persona haga doble turno el mismo día
             let duplicados = todosSeleccionados.filter((item, index) => todosSeleccionados.indexOf(item) !== index);
             if (duplicados.length > 0) {
                 let unicos = [...new Set(duplicados)];
@@ -613,6 +671,8 @@
         }
 
         // --- INICIALIZACIÓN PRIMARIA ---
+        renderizarDiasLaborables();
+
         document.getElementById('lista-equipo-activa').innerHTML = `
             <span class="text-gray-500 text-sm italic animate-pulse">Cargando equipo...</span>
         `;
