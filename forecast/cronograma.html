@@ -129,7 +129,6 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 1. CONFIGURACIÓN DE BASE DE DATOS GLOBAL (NUBE) ---
-        // Leemos la configuración usando el mismo método de la plantilla
         const appId = (window.APP_CONFIG && window.APP_CONFIG.appId) ? window.APP_CONFIG.appId : (typeof __app_id !== 'undefined' ? __app_id : 'meteoclima-cronograma');
 
         let configObj = window.APP_CONFIG ? window.APP_CONFIG.firebaseConfig : null;
@@ -156,20 +155,12 @@
             db = getFirestore(app);
             docRef = doc(db, 'artifacts', appId, 'public', 'data', 'cronograma_global', 'estado_actual');
 
-            /* --- BLOQUE COMENTADO PARA EVITAR CONFLICTO ENTRE PESTAÑAS ---
-            setPersistence(auth, browserLocalPersistence).then(() => {
-                onAuthStateChanged(auth, (user) => { ... });
-            });
-            -------------------------------------------------------------- */
-
             // Usamos el observador nativo de caché para lectura no destructiva
             onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    // El usuario TIENE CACHÉ, iniciamos la sincronización
                     isCloudReady = true;
                     listenToCloudData();
                 } else {
-                    // NO TIENE CACHÉ -> Redirección silenciosa e inmediata
                     window.location.replace("index.html");
                 }
             });
@@ -186,7 +177,6 @@
                     if (data.overrides) overrides = data.overrides;
                     if (data.randomSeed !== undefined) randomSeedOffset = data.randomSeed;
 
-                    // Actualizar caché local
                     localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
                     localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
                     localStorage.setItem('meteoclima_seed', randomSeedOffset.toString());
@@ -202,12 +192,10 @@
         }
 
         async function guardarEnNube() {
-            // Guardado local de respaldo
             localStorage.setItem('meteoclima_personas', JSON.stringify(personas));
             localStorage.setItem('meteoclima_overrides', JSON.stringify(overrides));
             localStorage.setItem('meteoclima_seed', randomSeedOffset.toString());
 
-            // Guardado global para todos los usuarios
             if (isCloudReady && auth.currentUser) {
                 try {
                     await setDoc(docRef, { personas, overrides, randomSeed: randomSeedOffset });
@@ -222,7 +210,6 @@
 
         // --- LÓGICA DE SIMULACIÓN Y BALANCEO ---
 
-        // Función pseudo-aleatoria avanzada para desempates justos pero estables
         function hashString(str, seed, day) {
             let h = 0xdeadbeef;
             let s = str + seed + day;
@@ -240,7 +227,7 @@
                 estado[p] = {
                     count: 0,
                     lastWorked: -999,
-                    roles: { informes: 0, verificacion: 0, pronostico: 0, video: 0 }
+                    roles: { verificacion: 0, pronostico: 0, video: 0 }
                 };
             });
 
@@ -253,7 +240,6 @@
                 let trabajadoresAyer = [];
                 if (day > 0 && asignaciones[day - 1]) {
                     let a = asignaciones[day - 1];
-                    if (a.informes) trabajadoresAyer.push(...a.informes);
                     if (a.verificacion) trabajadoresAyer.push(...a.verificacion);
                     if (a.pronostico) trabajadoresAyer.push(...a.pronostico);
                     if (a.video) trabajadoresAyer.push(...a.video);
@@ -312,7 +298,7 @@
                     asignaciones[d] = overrides[d];
 
                     // Actualizar contadores basados en la edición manual
-                    let roles = ["informes", "verificacion", "pronostico", "video"];
+                    let roles = ["verificacion", "pronostico", "video"];
                     roles.forEach(r => {
                         if (overrides[d][r]) {
                             overrides[d][r].forEach(p => {
@@ -329,7 +315,7 @@
                     dateCalc.setDate(dateCalc.getDate() + d);
                     let dayOfWeek = dateCalc.getDay();
 
-                    let asignacionDia = { informes: null, verificacion: null, pronostico: null, video: null };
+                    let asignacionDia = { verificacion: null, pronostico: null, video: null };
                     let ocupadosHoy = [];
 
                     // ROTACIÓN DE ASIGNACIÓN: Para evitar que el último grupo recoja "las sobras",
@@ -338,10 +324,6 @@
                         { nombre: "verificacion", n: 3 },
                         { nombre: "pronostico", n: 3 }
                     ];
-
-                    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                        ordenRoles.push({ nombre: "informes", n: 2 });
-                    }
 
                     // Girar la lista de prioridades dependiendo del día
                     let shift = d % ordenRoles.length;
@@ -352,7 +334,7 @@
                         ocupadosHoy.push(...asignacionDia[rolObj.nombre]);
                     });
 
-                    // 4. Video Semanal (Tiene reglas estrictas, se asigna al final)
+                    // Video Semanal (Tiene reglas estrictas, se asigna al final)
                     if (dayOfWeek === 1) {
                         let force = [];
                         if (personas.includes("Lourdes") && !ocupadosHoy.includes("Lourdes")) force.push("Lourdes");
@@ -394,7 +376,7 @@
 
             errorMsg.classList.add('hidden');
             personas.push(nombre);
-            guardarEnNube(); // Reemplaza a guardarPersonas()
+            guardarEnNube();
             input.value = '';
         }
 
@@ -408,17 +390,13 @@
 
             errorMsg.classList.add('hidden');
             personas = personas.filter(p => p !== nombre);
-            guardarEnNube(); // Sincroniza eliminación con todo el mundo
+            guardarEnNube();
         }
 
         window.forzarRebalanceo = function() {
-            // Cambiamos la semilla de desempate con un rango amplio
             randomSeedOffset = Math.floor(Math.random() * 10000);
-
-            // Al guardar en la nube, se actualiza Firebase y dispara el renderizado para todos
             guardarEnNube();
 
-            // Feedback visual rápido
             const btn = event.currentTarget;
             const textOriginal = btn.innerHTML;
             btn.innerHTML = "¡Cronograma Barajado en la Nube!";
@@ -434,8 +412,7 @@
         fechaInicio.setHours(0, 0, 0, 0);
         const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
 
-
-window.renderizarCronograma = function() {
+        window.renderizarCronograma = function() {
             const tbody = document.getElementById("tabla-body");
             tbody.innerHTML = "";
 
@@ -462,12 +439,6 @@ window.renderizarCronograma = function() {
 
                 let gruposHTML = "";
                 let actividadHTML = "";
-
-                // Renderizar Informes
-                if (asig.informes) {
-                    gruposHTML += `<div class="mb-3"><span class="font-bold text-indigo-700">📝 Informes:</span> ${asig.informes.join(", ")}</div>`;
-                    actividadHTML += `<div class="mb-3"><span class="font-semibold text-indigo-700">Informes Instituciones:</span> Post diario.</div>`;
-                }
 
                 // Renderizar Verificación
                 gruposHTML += `<div class="mb-3"><span class="font-bold text-red-600">✅ Verificación:</span> ${asig.verificacion.join(", ")}</div>`;
@@ -534,7 +505,7 @@ window.renderizarCronograma = function() {
             errorMsg.classList.add('hidden');
             contenedor.innerHTML = '';
 
-            let asigActual = asignaciones[diffDias] || { informes: [], verificacion: [], pronostico: [], video: null };
+            let asigActual = asignaciones[diffDias] || { verificacion: [], pronostico: [], video: null };
 
             // Determinar si el día seleccionado es lunes
             let dateCalc = new Date(fechaInicio);
@@ -543,9 +514,7 @@ window.renderizarCronograma = function() {
 
             // Función para generar desplegables rápidamente
             function generarSelects(titulo, color, idPrefix, cantidad, seleccionados) {
-                // Mapeo explícito para que Tailwind reconozca las clases
                 const colorClasses = {
-                    indigo: { border: "border-indigo-200", bg: "bg-indigo-50", text: "text-indigo-800" },
                     red: { border: "border-red-200", bg: "bg-red-50", text: "text-red-800" },
                     emerald: { border: "border-emerald-200", bg: "bg-emerald-50", text: "text-emerald-800" },
                     purple: { border: "border-purple-200", bg: "bg-purple-50", text: "text-purple-800" }
@@ -571,12 +540,6 @@ window.renderizarCronograma = function() {
                 return html;
             }
 
-            // Validar si el día aplica para informes (Lunes a Viernes)
-            let diaSemana = dateCalc.getDay();
-            if (diaSemana >= 1 && diaSemana <= 5) {
-                contenedor.innerHTML += generarSelects("📝 Informes Instituciones", "indigo", "sel_inf", 2, asigActual.informes);
-            }
-
             contenedor.innerHTML += generarSelects("✅ Verificación y Reporte", "red", "sel_ver", 3, asigActual.verificacion);
             contenedor.innerHTML += generarSelects("⛅ Pronóstico Subsiguiente", "emerald", "sel_pro", 3, asigActual.pronostico);
 
@@ -594,10 +557,9 @@ window.renderizarCronograma = function() {
 
         window.guardarEdicion = function() {
             const errorMsg = document.getElementById('error-msg');
-            let nuevaAsignacion = { informes: null, verificacion: [], pronostico: [], video: null };
+            let nuevaAsignacion = { verificacion: [], pronostico: [], video: null };
             let todosSeleccionados = [];
 
-            // Helper para recolectar datos de los selects
             function recolectar(idPrefix, cantidad) {
                 let arr = [];
                 for(let i=0; i<cantidad; i++) {
@@ -610,21 +572,7 @@ window.renderizarCronograma = function() {
                 return arr;
             }
 
-            let dateCalc = new Date(fechaInicio);
-            dateCalc.setDate(dateCalc.getDate() + diaEditando);
-            let diaSemana = dateCalc.getDay();
-
-            // 1. Recolectar Informes (Solo L-V)
-            if (diaSemana >= 1 && diaSemana <= 5) {
-                nuevaAsignacion.informes = recolectar("sel_inf", 2);
-                if (nuevaAsignacion.informes.length !== 2) {
-                    errorMsg.innerText = "Faltan asignar miembros en 'Informes Instituciones' (Debe ser 2).";
-                    errorMsg.classList.remove('hidden');
-                    return;
-                }
-            }
-
-            // 2. Recolectar Verificación
+            // 1. Recolectar Verificación
             nuevaAsignacion.verificacion = recolectar("sel_ver", 3);
             if (nuevaAsignacion.verificacion.length !== 3) {
                 errorMsg.innerText = "Faltan asignar miembros en 'Verificación y Reporte' (Debe ser 3).";
@@ -632,7 +580,7 @@ window.renderizarCronograma = function() {
                 return;
             }
 
-            // 3. Recolectar Pronóstico
+            // 2. Recolectar Pronóstico
             nuevaAsignacion.pronostico = recolectar("sel_pro", 3);
             if (nuevaAsignacion.pronostico.length !== 3) {
                 errorMsg.innerText = "Faltan asignar miembros en 'Pronóstico' (Debe ser 3).";
@@ -640,7 +588,7 @@ window.renderizarCronograma = function() {
                 return;
             }
 
-            // 4. Recolectar Video (Solo Lunes)
+            // 3. Recolectar Video (Solo Lunes)
             if (esLunesEditando) {
                 nuevaAsignacion.video = recolectar("sel_vid", 3);
                 if (nuevaAsignacion.video.length !== 3) {
@@ -659,14 +607,12 @@ window.renderizarCronograma = function() {
                 return;
             }
 
-            // Guardar cambios y subir a Firebase
             overrides[diaEditando] = nuevaAsignacion;
             guardarEnNube();
             cerrarModal();
         }
 
-// --- INICIALIZACIÓN PRIMARIA ---
-        // Mostramos un estado de "Cargando" animado mientras esperamos a la nube.
+        // --- INICIALIZACIÓN PRIMARIA ---
         document.getElementById('lista-equipo-activa').innerHTML = `
             <span class="text-gray-500 text-sm italic animate-pulse">Cargando equipo...</span>
         `;
