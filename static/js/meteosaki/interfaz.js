@@ -328,8 +328,6 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                     font: { family: 'Inter, sans-serif' }
                 };
 
-                Plotly.newPlot('plot-container', [traceTopo, traceR], layout, {responsive: true, displayModeBar: false}).then(() => {
-
         Plotly.newPlot('plot-container', [traceTopo, traceR], layout, {responsive: true, displayModeBar: false}).then(() => {
             const canvas = document.getElementById('wind-canvas'); const ctx = canvas.getContext('2d'); const gd = document.getElementById('plot-container');
             const pMin = 100, pMax = 1000; const xMin = Math.min(ejeX[0], ejeX[numPoints - 1]), xMax = Math.max(ejeX[0], ejeX[numPoints - 1]);
