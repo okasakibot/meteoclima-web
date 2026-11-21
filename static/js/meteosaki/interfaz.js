@@ -294,7 +294,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                 else { this.innerText = "▶️ Mostrar Estelas"; this.classList.replace('opacity-80', 'opacity-50'); cancelAnimationFrame(state.crossSectionAnimId); ctx.clearRect(0, 0, canvas.width, canvas.height); }
             });
             const maxTime = parseInt(sliderInterno.max || "40", 10);
-            prefetchCorteTransversal(Number(timeIdx) + 1, maxTime);            
+            prefetchCorteTransversal(Number(timeIdx) + 1, maxTime);
             });
             } catch (err) { console.error(err); container.innerHTML = `<div class="text-red-600 bg-red-100 p-4 rounded-lg font-bold">⚠️ Error: ${err.message}</div>`; }
             }
@@ -500,6 +500,25 @@ export function initUI() {
     document.getElementById('corte-time-slider')?.addEventListener('change', (e) => {
         if (state.crossSectionPoints.length === 2) procesarCorteTransversal(state.crossSectionPoints[0], state.crossSectionPoints[1], e.target.value);
     });
+
+    const corteSlider = document.getElementById('corte-time-slider');
+        if (corteSlider) {
+            const moverCorteSlider = (delta) => {
+                const min = parseInt(corteSlider.min || '0', 10);
+                const max = parseInt(corteSlider.max || '40', 10);
+                const actual = parseInt(corteSlider.value, 10);
+                const total = max - min + 1;
+
+                // Navegación circular: al pasar de max vuelve a min, y al bajar de min salta a max
+                const siguiente = min + (((actual - min + delta) % total) + total) % total;
+                corteSlider.value = siguiente;
+                corteSlider.dispatchEvent(new Event('input'));
+                corteSlider.dispatchEvent(new Event('change'));
+            };
+
+            document.getElementById('btn-corte-time-prev')?.addEventListener('click', () => moverCorteSlider(-1));
+            document.getElementById('btn-corte-time-next')?.addEventListener('click', () => moverCorteSlider(1));
+        }
 
     // Constructor Paletas
     document.getElementById('btn-add-stop')?.addEventListener('click', () => {

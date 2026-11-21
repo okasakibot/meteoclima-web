@@ -46,7 +46,7 @@ export const escalas = {
     'r': { min: 0, max: 100, unit: '%', name: 'Humedad Relativa', repo: 'data1' },
     'w': { min: 0, max: 40, unit: ' m/s', name: 'Velocidad del Viento', repo: 'data1' },
     'q': { min: 0, max: 20, unit: ' g/kg', name: 'Humedad Específica', repo: 'data1' },
-    't2m': { min: -10, max: 40, unit: '°C', name: 'Temp a 2m', repo: 'data1' },
+    't2m': { min: -10, max: 40, unit: '°C', name: 'Temp a 2m', repo: 'data2' },
     'tp': { min: 0, max: 50, unit: ' mm/3h', name: 'Precipitación Total', repo: 'data1' },
     'msl': { min: 970, max: 1020, unit: ' hPa', name: 'Presión al Nivel del Mar', repo: 'data1' },
     'vo': { min: -1, max: 1, unit: ' /3h', name: 'Vorticidad relativa', repo: 'data1' },

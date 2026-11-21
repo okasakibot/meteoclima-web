@@ -165,10 +165,12 @@
                 </div>
 
                 <!-- Controles de Tiempo -->
-                <div class="flex items-center gap-2 shrink-0 bg-white px-2 py-1 border border-purple-200 rounded shadow-sm">
-                    <span class="font-bold text-[11px] uppercase tracking-wider text-purple-700">Tiempo:</span>
+                <div class="flex items-center gap-1.5 shrink-0 bg-white px-2 py-1 border border-purple-200 rounded shadow-sm">
+                    <span class="font-bold text-[11px] uppercase tracking-wider text-purple-700 mr-1">Tiempo:</span>
+                    <button id="btn-corte-time-prev" class="px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded font-bold text-sm leading-none transition active:scale-95" title="Frame anterior">&lsaquo;</button>
                     <input type="range" id="corte-time-slider" min="0" max="40" value="0" class="w-24 cursor-pointer accent-purple-600">
-                    <div class="flex flex-col text-right w-36">
+                    <button id="btn-corte-time-next" class="px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded font-bold text-sm leading-none transition active:scale-95" title="Frame siguiente">&rsaquo;</button>
+                    <div class="flex flex-col text-right w-36 ml-1">
                         <span id="corte-time-display-date" class="font-bold font-mono text-purple-800 text-[10px] leading-tight">Cargando...</span>
                         <span id="corte-time-display-offset" class="font-bold font-mono text-purple-600 text-[9px] leading-tight">+0h</span>
                     </div>
