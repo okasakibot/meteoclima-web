@@ -238,12 +238,15 @@ export function renderizarViento(uArray, vArray) {
         ? parseFloat(document.getElementById('config-wind-speed-modal').value)
         : 0.015;
 
-    // Si la capa ya existe, actualizar datos en caliente sin destruir el canvas
-    if (state.windLayer && typeof state.windLayer.setData === 'function') {
-        state.windLayer.setOptions({ velocityScale: speedCfg });
-        state.windLayer.setData(velocityData);
-        return;
-    }
+    // Si la capa ya existe y no cambió la velocidad, actualizar datos en caliente
+        if (
+            state.windLayer &&
+            typeof state.windLayer.setData === 'function' &&
+            state.windLayer.options.velocityScale === speedCfg
+        ) {
+            state.windLayer.setData(velocityData);
+            return;
+        }
 
     if (state.windLayer) map.removeLayer(state.windLayer);
 
