@@ -281,6 +281,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
           x: ejeX,
           y: validNiveles,
           type: 'contour',
+          opacity: state.crossSectionHrOpacity ?? 1.0,
           zauto: false,
           zmin: 0,
           zmax: 100,
@@ -607,6 +608,18 @@ export function initUI() {
                     const lbl = document.getElementById('corte-wind-speed-label');
                     if (lbl) lbl.innerText = `${val.toFixed(1)}x`;
                 });
+            document.getElementById('corte-hr-opacity')?.addEventListener('input', (e) => {
+              const val = parseFloat(e.target.value);
+              state.crossSectionHrOpacity = val;
+              const lbl = document.getElementById('corte-hr-opacity-label');
+              if (lbl) lbl.innerText = `${Math.round(val * 100)}%`;
+
+              const gd = document.getElementById('plot-container');
+              if (gd && gd.data) {
+                  // Índice 1 corresponde a traceR dentro de [traceTopo, traceR]
+                  Plotly.restyle(gd, { opacity: val }, [1]);
+              }
+          });                
         }
 
     // Constructor Paletas

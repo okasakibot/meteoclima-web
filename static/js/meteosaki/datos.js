@@ -111,15 +111,34 @@ export function prefetchCorteTransversal(nextTimeIdx, maxTimeIdx) {
     }
 }
 
+// Precarga silenciosa de los siguientes frames del mapa 2D (variable + viento u/v)
+export function prefetchMapa2D(variable, currentTimeIdx, levelIdx, maxTimeIdx, ahead = 2) {
+    const requiereViento = state.isWindActive || variable === 'w';
+    for (let step = 1; step <= ahead; step++) {
+        const nextIdx = Number(currentTimeIdx) + step;
+        if (nextIdx > maxTimeIdx) break;
+
+        if (variable !== 'w') descargarCapa(variable, nextIdx, levelIdx).catch(() => {});
+        if (requiereViento) {
+            descargarCapa('u', nextIdx, levelIdx).catch(() => {});
+            descargarCapa('v', nextIdx, levelIdx).catch(() => {});
+        }
+    }
+}
+
+let mapRenderToken = 0;
+
 // ==========================================
 // 2. ORQUESTADOR PRINCIPAL DE ACTUALIZACIÓN
 // ==========================================
 export async function actualizarMapa() {
+    const myToken = ++mapRenderToken;
     const loadingUI = document.getElementById('loading-indicator');
-    if(loadingUI) loadingUI.classList.remove('hidden');
+    if (loadingUI) loadingUI.classList.remove('hidden');
 
     const variable = document.getElementById('var-select').value;
-    const timeIdx = document.getElementById('time-slider').value;
+    const timeSlider = document.getElementById('time-slider');
+    const timeIdx = timeSlider.value;
     const levelIdx = document.getElementById('level-select').value;
 
     try {
@@ -134,27 +153,30 @@ export async function actualizarMapa() {
         }
 
         const resultados = await Promise.all(promesas);
+        if (myToken !== mapRenderToken) return; // Descartar si ya se pidió otro frame
 
         if (variable === 'w') {
-            uArray = resultados[1]; vArray = resultados[2];
-            baseArray = new Float32Array(uArray.length);
-            for(let i = 0; i < uArray.length; i++) {
-                baseArray[i] = (!isNaN(uArray[i]) && !isNaN(vArray[i])) ? Math.sqrt(Math.pow(uArray[i], 2) + Math.pow(vArray[i], 2)) : null;
+            uArray = resultados[1];
+            vArray = resultados[2];
+            if (uArray && vArray) {
+                baseArray = new Float32Array(uArray.length);
+                for (let i = 0; i < uArray.length; i++) {
+                    baseArray[i] = (!isNaN(uArray[i]) && !isNaN(vArray[i]))
+                        ? Math.hypot(uArray[i], vArray[i])
+                        : NaN;
+                }
             }
         } else {
             baseArray = resultados[0];
-            if (requiereViento) { uArray = resultados[1]; vArray = resultados[2]; }
+            if (requiereViento) {
+                uArray = resultados[1];
+                vArray = resultados[2];
+            }
         }
 
-        // Actualizamos el estado global
         state.currentBaseArray = baseArray;
-        if (requiereViento) {
-            state.currentUArray = uArray;
-            state.currentVArray = vArray;
-        } else {
-            state.currentUArray = null;
-            state.currentVArray = null;
-        }
+        state.currentUArray = requiereViento ? uArray : null;
+        state.currentVArray = requiereViento ? vArray : null;
 
         if (baseArray) renderizarCalor(baseArray, variable);
 
@@ -165,55 +187,75 @@ export async function actualizarMapa() {
             state.windLayer = null;
         }
 
+        // Precargar silenciosamente los 2 siguientes frames en RAM
+        const maxTime = parseInt(timeSlider.max || '40', 10);
+        prefetchMapa2D(variable, timeIdx, levelIdx, maxTime, 2);
+
     } catch (error) {
         console.error("Error al actualizar el mapa:", error);
     } finally {
-        if(loadingUI) loadingUI.classList.add('hidden');
-        actualizarTextosFecha(document.getElementById('time-slider').value * 3);
+        if (myToken === mapRenderToken && loadingUI) {
+            loadingUI.classList.add('hidden');
+        }
+        actualizarTextosFecha(timeSlider.value * 3);
     }
 }
 
 // ==========================================
-// 3. RENDERIZADORES 2D (VIENTO Y CALOR)
+// 3. RENDERIZADOR DE VIENTO (REUTILIZANDO CAPA)
 // ==========================================
 export function renderizarViento(uArray, vArray) {
-    let uClean = []; let vClean = [];
+    const total = width * height;
+    const uClean = new Array(total);
+    const vClean = new Array(total);
 
-    // Leaflet-Velocity asume orden estricto de Norte a Sur.
+    // Pre-asignado sin .push() (orden estricto Norte a Sur para leaflet-velocity)
+    let k = 0;
     for (let y = height - 1; y >= 0; y--) {
+        const rowOffset = y * width;
         for (let x = 0; x < width; x++) {
-            let idx = y * width + x;
-            uClean.push(isNaN(uArray[idx]) || Math.abs(uArray[idx]) > 1e20 ? null : uArray[idx]);
-            vClean.push(isNaN(vArray[idx]) || Math.abs(vArray[idx]) > 1e20 ? null : vArray[idx]);
+            const idx = rowOffset + x;
+            const u = uArray[idx];
+            const v = vArray[idx];
+            uClean[k] = (isNaN(u) || Math.abs(u) > 1e20) ? null : u;
+            vClean[k] = (isNaN(v) || Math.abs(v) > 1e20) ? null : v;
+            k++;
         }
     }
 
     const velocityData = [
         {
-            header: { parameterCategory: 2, parameterNumber: 2, lo1: lonInicio, la1: latFin, dx: dx, dy: dy, nx: width, ny: height, refTime: "2026" },
+            header: { parameterCategory: 2, parameterNumber: 2, lo1: lonInicio, la1: latFin, dx, dy, nx: width, ny: height, refTime: "2026" },
             data: uClean
         },
         {
-            header: { parameterCategory: 2, parameterNumber: 3, lo1: lonInicio, la1: latFin, dx: dx, dy: dy, nx: width, ny: height, refTime: "2026" },
+            header: { parameterCategory: 2, parameterNumber: 3, lo1: lonInicio, la1: latFin, dx, dy, nx: width, ny: height, refTime: "2026" },
             data: vClean
         }
     ];
 
-    if (state.windLayer) map.removeLayer(state.windLayer);
+    const speedCfg = document.getElementById('config-wind-speed-modal')
+        ? parseFloat(document.getElementById('config-wind-speed-modal').value)
+        : 0.015;
 
-    let speedCfg = document.getElementById('config-wind-speed-modal') ? parseFloat(document.getElementById('config-wind-speed-modal').value) : 0.015;
+    // Si la capa ya existe, actualizar datos en caliente sin destruir el canvas
+    if (state.windLayer && typeof state.windLayer.setData === 'function') {
+        state.windLayer.setOptions({ velocityScale: speedCfg });
+        state.windLayer.setData(velocityData);
+        return;
+    }
+
+    if (state.windLayer) map.removeLayer(state.windLayer);
 
     state.windLayer = L.velocityLayer({
         displayValues: false,
         data: velocityData,
         maxVelocity: 25,
         velocityScale: speedCfg,
-        particleMultiplier: 1/500,
+        particleMultiplier: 1 / 500,
         colorScale: ["#ffffff"],
         pane: 'windPane'
-    });
-
-    state.windLayer.addTo(map);
+    }).addTo(map);
 }
 
 export function renderizarCalor(dataArray, variable) {
