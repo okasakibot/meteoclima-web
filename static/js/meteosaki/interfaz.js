@@ -5,7 +5,7 @@ import {
     dx, dy, width, height, limitesData
 } from './config.js';
 import { map, cargarMapaBase } from './mapa.js';
-import { actualizarMapa, descargarCapa, renderizarCalor, renderizarViento } from './datos.js';
+import { actualizarMapa, descargarCapa, renderizarCalor, renderizarViento, prefetchCorteTransversal } from './datos.js';
 
 // ==========================================
 // 1. FORMATO DE FECHAS
@@ -139,7 +139,9 @@ map.on('click', (e) => {
     }
 });
 
+let corteRenderToken = 0;
 async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
+    const myCorteToken = ++corteRenderToken;
     const container = document.getElementById('corte-grafico-container');
     if (state.crossSectionAnimId) cancelAnimationFrame(state.crossSectionAnimId);
     state.crossSectionParticles = [];
@@ -170,7 +172,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
         let promesaGeopotencial = descargarCapa('z', timeIdx, null).catch(() => null);
 
         const [resultadosNivelesAll, dataZ] = await Promise.all([Promise.all(promesas), promesaGeopotencial]);
-
+        if (myCorteToken !== corteRenderToken) return;
         let validNiveles = [], resultadosNiveles = [];
         for (let i = 0; i < nivelesAll.length; i++) {
             if (resultadosNivelesAll[i] !== null) {
@@ -291,6 +293,8 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                 if (state.isCrossSectionWindActive) { this.innerText = "⏸️ Ocultar Estelas"; this.classList.replace('opacity-50', 'opacity-80'); animateTrails(); }
                 else { this.innerText = "▶️ Mostrar Estelas"; this.classList.replace('opacity-80', 'opacity-50'); cancelAnimationFrame(state.crossSectionAnimId); ctx.clearRect(0, 0, canvas.width, canvas.height); }
             });
+            const maxTime = parseInt(sliderInterno.max || "40", 10);
+            prefetchCorteTransversal(Number(timeIdx) + 1, maxTime);            
             });
             } catch (err) { console.error(err); container.innerHTML = `<div class="text-red-600 bg-red-100 p-4 rounded-lg font-bold">⚠️ Error: ${err.message}</div>`; }
             }
