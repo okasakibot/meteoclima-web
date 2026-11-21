@@ -139,6 +139,47 @@ map.on('click', (e) => {
     }
 });
 
+function sampleBicubic(arr, lat, lon) {
+    if (!arr) return null;
+    const fy = (lat - latInicio) / dy;
+    const fx = (lon - lonInicio) / dx;
+    if (fy < 0 || fy > height - 1 || fx < 0 || fx > width - 1) return null;
+
+    const ix = Math.floor(fx);
+    const iy = Math.floor(fy);
+    const tx = fx - ix;
+    const ty = fy - iy;
+
+    const getVal = (x, y) => {
+        const cx = Math.max(0, Math.min(width - 1, x));
+        const cy = Math.max(0, Math.min(height - 1, y));
+        const v = arr[cy * width + cx];
+        return (v === null || isNaN(v) || !isFinite(v) || Math.abs(v) > 1e19) ? null : v;
+    };
+
+    const cubic = (p0, p1, p2, p3, t) => {
+        if (p1 === null || p2 === null) return null;
+        if (p0 === null) p0 = p1;
+        if (p3 === null) p3 = p2;
+        const a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3;
+        const b = p0 - 2.5 * p1 + 2.0 * p2 - 0.5 * p3;
+        const c = -0.5 * p0 + 0.5 * p2;
+        return ((a * t + b) * t + c) * t + p1;
+    };
+
+    const rows = [0, 0, 0, 0];
+    for (let j = -1; j <= 2; j++) {
+        rows[j + 1] = cubic(
+            getVal(ix - 1, iy + j),
+            getVal(ix,     iy + j),
+            getVal(ix + 1, iy + j),
+            getVal(ix + 2, iy + j),
+            tx
+        );
+    }
+    return cubic(rows[0], rows[1], rows[2], rows[3], ty);
+}
+
 let corteRenderToken = 0;
 async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
     const myCorteToken = ++corteRenderToken;
@@ -181,73 +222,101 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             }
         }
 
-        const numPoints = 80;
-        let lats = [], lons = [], ejeX = [];
-        const isLonCut = p1.lat === p2.lat;
-        const unitX = (p2.lng - p1.lng) / Math.sqrt((p2.lng - p1.lng)**2 + (p2.lat - p1.lat)**2);
-        const unitY = (p2.lat - p1.lat) / Math.sqrt((p2.lng - p1.lng)**2 + (p2.lat - p1.lat)**2);
+        const numPoints = 120;
+                let lats = [], lons = [], ejeX = [];
+                const isLonCut = p1.lat === p2.lat;
+                const dist = Math.sqrt((p2.lng - p1.lng)**2 + (p2.lat - p1.lat)**2);
+                const unitX = (p2.lng - p1.lng) / dist;
+                const unitY = (p2.lat - p1.lat) / dist;
 
-        for (let i = 0; i < numPoints; i++) {
-            let f = i / (numPoints - 1);
-            let curLat = p1.lat + (p2.lat - p1.lat) * f;
-            let curLon = p1.lng + (p2.lng - p1.lng) * f;
-            lats.push(curLat);
-            lons.push(curLon);
-            ejeX.push(isLonCut ? curLon : curLat);
-        }
-
-        let topoY = [];
-        for (let i = 0; i < numPoints; i++) {
-            let yIdx = Math.round((lats[i] - latInicio) / dy); let xIdx = Math.round((lons[i] - lonInicio) / dx);
-            let topohPa = 1000;
-            if (dataZ && yIdx >= 0 && yIdx < height && xIdx >= 0 && xIdx < width) topohPa = dataZ[yIdx * width + xIdx];
-            topoY.push(topohPa);
-        }
-
-        let zMatrix = [], uProjMatrix = [], wMatrix = [];
-        for (let lvl = 0; lvl < validNiveles.length; lvl++) {
-            let filaR = [], filaU = [], filaW = [];
-            for (let i = 0; i < numPoints; i++) {
-                let yIdx = Math.round((lats[i] - latInicio) / dy); let xIdx = Math.round((lons[i] - lonInicio) / dx);
-                let rVal = null, projU = 0, wVal = 0;
-                if (yIdx >= 0 && yIdx < height && xIdx >= 0 && xIdx < width) {
-                    let idx = yIdx * width + xIdx;
-                    let rRaw = resultadosNiveles[lvl][0][idx];
-                    if (!isNaN(rRaw) && isFinite(rRaw) && rRaw < 1e20) {
-                        rVal = rRaw;
-                        projU = (resultadosNiveles[lvl][1][idx] * unitX) + (resultadosNiveles[lvl][2][idx] * unitY);
-                        wVal = resultadosNiveles[lvl][3][idx] * 15.0;
-                    }
+                for (let i = 0; i < numPoints; i++) {
+                    const f = i / (numPoints - 1);
+                    const curLat = p1.lat + (p2.lat - p1.lat) * f;
+                    const curLon = p1.lng + (p2.lng - p1.lng) * f;
+                    lats.push(curLat);
+                    lons.push(curLon);
+                    ejeX.push(isLonCut ? curLon : curLat);
                 }
-                filaR.push(rVal); filaU.push(projU); filaW.push(wVal);
-            }
-            zMatrix.push(filaR); uProjMatrix.push(filaU); wMatrix.push(filaW);
-        }
 
-        container.innerHTML = `<div id="plot-container" class="w-full h-full absolute top-0 left-0 z-10 bg-[#000000]"></div><canvas id="wind-canvas" class="w-full h-full absolute top-0 left-0 z-20 pointer-events-none"></canvas><button id="btn-toggle-cross-wind" class="absolute top-4 right-4 z-30 px-3 py-1 bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded shadow-lg opacity-80 hover:opacity-100 transition">⏸️ Ocultar Estelas</button>`;
+                // Topografía suavizada con interpolación bicúbica
+                let topoY = [];
+                for (let i = 0; i < numPoints; i++) {
+                    const zInterp = sampleBicubic(dataZ, lats[i], lons[i]);
+                    topoY.push(zInterp !== null ? Math.min(1000, Math.max(100, zInterp)) : 1000);
+                }
 
-        const traceR = {
-            z: zMatrix,
-            x: ejeX,
-            y: validNiveles,
-            type: 'contour',
-            zmin: 0,
-            zmax: 100,
-            colorscale: [[0.0, 'black'], [0.7, 'black'], [0.7, 'yellow'], [0.85, 'green'], [1.0, 'blue']],
-            colorbar: {
-                title: 'Humedad Relativa (%)',
-                tickfont: {color: 'white'},
-                titlefont: {color: 'white'}
-            },
-            contours: {
-                showlines: false,
-                //coloring: 'heatmap' // <-- CRUCIAL: Fuerza el renderizado por bloques de color sin suavizar los bordes
-            },
-            connectgaps: false,
-            hoverinfo: 'x+y+z'
-        };
-        const traceTopo = { x: [...ejeX, ejeX[numPoints-1], ejeX[0]], y: [...topoY, 1000, 1000], fill: 'toself', fillcolor: '#654321', mode: 'lines', showlegend: false, hoverinfo: 'none', line: { color: '#8b5a2b', width: 2 } };
-        const layout = { title: { text: `Perfil Vertical Transversal (${isLonCut ? 'Longitudinal' : 'Latitudinal'})`, font: {color: 'white'} }, plot_bgcolor: '#000000', paper_bgcolor: '#000000', yaxis: { title: 'Presión (hPa)', type: 'linear', autorange: false, range: [1000, 100], gridcolor: '#333', color: 'white', fixedrange: true }, xaxis: { title: isLonCut ? 'Longitud (°W/°E)' : 'Latitud (°S/°N)', tickformat: '.2f', gridcolor: '#333', color: 'white', fixedrange: true }, margin: { t: 50, b: 50, l: 60, r: 20 }, font: { family: 'Inter, sans-serif' } };
+                // Matrices de HR y viento suavizadas con interpolación bicúbica
+                let zMatrix = [], uProjMatrix = [], wMatrix = [];
+                for (let lvl = 0; lvl < validNiveles.length; lvl++) {
+                    let filaR = [], filaU = [], filaW = [];
+                    const arrR = resultadosNiveles[lvl][0];
+                    const arrU = resultadosNiveles[lvl][1];
+                    const arrV = resultadosNiveles[lvl][2];
+                    const arrW = resultadosNiveles[lvl][3];
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const rVal = sampleBicubic(arrR, lats[i], lons[i]);
+                        let projU = 0, wVal = 0;
+
+                        if (rVal !== null) {
+                            const uVal = sampleBicubic(arrU, lats[i], lons[i]) || 0;
+                            const vVal = sampleBicubic(arrV, lats[i], lons[i]) || 0;
+                            const wRaw = sampleBicubic(arrW, lats[i], lons[i]) || 0;
+                            projU = (uVal * unitX) + (vVal * unitY);
+                            wVal = wRaw * 15.0;
+                        }
+                        filaR.push(rVal !== null ? Math.max(0, Math.min(100, rVal)) : null);
+                        filaU.push(projU);
+                        filaW.push(wVal);
+                    }
+                    zMatrix.push(filaR);
+                    uProjMatrix.push(filaU);
+                    wMatrix.push(filaW);
+                }
+
+                container.innerHTML = `<div id="plot-container" class="w-full h-full absolute top-0 left-0 z-10 bg-[#000000]"></div><canvas id="wind-canvas" class="w-full h-full absolute top-0 left-0 z-20 pointer-events-none"></canvas><button id="btn-toggle-cross-wind" class="absolute top-4 right-4 z-30 px-3 py-1 bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded shadow-lg opacity-80 hover:opacity-100 transition">⏸️ Ocultar Estelas</button>`;
+
+                const traceR = {
+                    z: zMatrix,
+                    x: ejeX,
+                    y: validNiveles,
+                    type: 'contour',
+                    zmin: 0,
+                    zmax: 100,
+                    colorscale: [[0.0, 'black'], [0.7, 'black'], [0.7, 'yellow'], [0.85, 'green'], [1.0, 'blue']],
+                    colorbar: {
+                        title: 'Humedad Relativa (%)',
+                        tickfont: { color: 'white' },
+                        titlefont: { color: 'white' }
+                    },
+                    contours: {
+                        showlines: false,
+                        start: 70,
+                        end: 100,
+                        size: 5
+                    },
+                    line: {
+                        smoothing: 1.3 // Máximo suavizado curvilíneo de contornos en Plotly
+                    },
+                    connectgaps: false,
+                    hoverinfo: 'x+y+z'
+                };
+
+                const traceTopo = {
+                    x: [...ejeX, ejeX[numPoints - 1], ejeX[0]],
+                    y: [...topoY, 1000, 1000],
+                    fill: 'toself',
+                    fillcolor: '#654321',
+                    mode: 'lines',
+                    showlegend: false,
+                    hoverinfo: 'none',
+                    line: {
+                        color: '#8b5a2b',
+                        width: 2,
+                        shape: 'spline',
+                        smoothing: 1.3
+                    }
+                };
 
         Plotly.newPlot('plot-container', [traceTopo, traceR], layout, {responsive: true, displayModeBar: false}).then(() => {
             const canvas = document.getElementById('wind-canvas'); const ctx = canvas.getContext('2d'); const gd = document.getElementById('plot-container');
