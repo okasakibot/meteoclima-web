@@ -95,7 +95,7 @@ export const state = {
     crossSectionAnimId: null,
     crossSectionParticles: [],
     isCrossSectionWindActive: true,
-    crossSectionWindSpeed: 0.7,
+    crossSectionWindSpeed: 1.0,
     crossSectionHrOpacity: 1.0,
 
     // Variables de Paleta Personalizada
