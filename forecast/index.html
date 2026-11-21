@@ -145,10 +145,17 @@
     <!-- Modal para el Gráfico de Corte Transversal -->
     <div id="modal-corte" class="hidden fixed inset-0 bg-black/75 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden">
-            <div class="bg-purple-900 text-white px-6 py-4 flex justify-between items-center shadow-md z-10">
-                <h2 class="text-xl font-bold flex items-center gap-2">📐 Perfil de Corte Transversal</h2>
-                <button onclick="cerrarCorte()" class="text-white hover:text-red-400 font-bold text-3xl transition-colors">&times;</button>
-            </div>
+          <!-- Encabezado con Título + Fecha -->
+          <div class="bg-purple-900 text-white px-6 py-3 flex justify-between items-center shadow-md z-10">
+              <div class="flex items-center gap-4 flex-wrap">
+                  <h2 class="text-xl font-bold flex items-center gap-2">📐 Perfil de Corte Transversal</h2>
+                  <div class="flex items-center gap-2 bg-purple-950/70 px-3 py-1 rounded-full border border-purple-700 font-mono text-xs">
+                      <span id="corte-time-display-date" class="font-bold text-purple-100">Cargando...</span>
+                      <span id="corte-time-display-offset" class="font-bold text-purple-300">+0h</span>
+                  </div>
+              </div>
+              <button onclick="cerrarCorte()" class="text-white hover:text-red-400 font-bold text-3xl transition-colors">&times;</button>
+          </div>
             <!-- Barra Info y Controles Locales (Editables) -->
             <div class="bg-purple-50 px-4 py-2 border-b border-purple-200 text-sm text-purple-900 flex flex-col md:flex-row justify-between items-center gap-3 z-10 shadow-sm">
                 <!-- Coordenadas Editables -->
@@ -164,16 +171,18 @@
                     <button id="btn-update-coords" class="ml-3 px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 font-bold shadow-sm transition active:scale-95">Graficar</button>
                 </div>
 
-                <!-- Controles de Tiempo -->
-                <div class="flex items-center gap-1.5 shrink-0 bg-white px-2 py-1 border border-purple-200 rounded shadow-sm">
-                    <span class="font-bold text-[11px] uppercase tracking-wider text-purple-700 mr-1">Tiempo:</span>
+                <!-- Controles de Tiempo y Velocidad de Viento -->
+                <div class="flex items-center gap-2 shrink-0 bg-white px-2.5 py-1 border border-purple-200 rounded shadow-sm">
+                    <span class="font-bold text-[11px] uppercase tracking-wider text-purple-700">Tiempo:</span>
                     <button id="btn-corte-time-prev" class="px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded font-bold text-sm leading-none transition active:scale-95" title="Frame anterior">&lsaquo;</button>
                     <input type="range" id="corte-time-slider" min="0" max="40" value="0" class="w-24 cursor-pointer accent-purple-600">
                     <button id="btn-corte-time-next" class="px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded font-bold text-sm leading-none transition active:scale-95" title="Frame siguiente">&rsaquo;</button>
-                    <div class="flex flex-col text-right w-36 ml-1">
-                        <span id="corte-time-display-date" class="font-bold font-mono text-purple-800 text-[10px] leading-tight">Cargando...</span>
-                        <span id="corte-time-display-offset" class="font-bold font-mono text-purple-600 text-[9px] leading-tight">+0h</span>
-                    </div>
+
+                    <div class="h-4 w-px bg-purple-200 mx-1"></div>
+
+                    <span class="font-bold text-[11px] uppercase tracking-wider text-purple-700" title="Velocidad de animación del viento">🌬️ Vel:</span>
+                    <input type="range" id="corte-wind-speed" min="0.2" max="3.0" step="0.1" value="1.0" class="w-20 cursor-pointer accent-purple-600">
+                    <span id="corte-wind-speed-label" class="font-mono font-bold text-[10px] text-purple-800 w-7 text-right">1.0x</span>
                 </div>
             </div>
             <div id="corte-grafico-container" class="flex-1 bg-gray-50 flex items-center justify-center relative">

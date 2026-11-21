@@ -356,7 +356,11 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
                 for (let i = 0; i < state.crossSectionParticles.length; i++) {
                     let pt = state.crossSectionParticles[i];
                     let oldX_pix = gd._fullLayout.margin.l + gd._fullLayout.xaxis.c2p(pt.x); let oldY_pix = gd._fullLayout.margin.t + gd._fullLayout.yaxis.c2p(pt.p);
-                    let wind = getWindAt(pt.x, pt.p); pt.x += wind.u * 0.003; pt.p += wind.w * 0.3; pt.age++;
+                    let wind = getWindAt(pt.x, pt.p);
+                    const speed = state.crossSectionWindSpeed ?? 1.0;
+                    pt.x += wind.u * 0.003 * speed;
+                    pt.p += wind.w * 0.3 * speed;
+                    pt.age++;
                     let topoIdxFloat = (pt.x - xMin) / (xMax - xMin) * (numPoints - 1); let idxInt = Math.floor(Math.max(0, Math.min(topoIdxFloat, numPoints - 2)));
                     let topoAtX = topoY[idxInt] * (1 - (topoIdxFloat - idxInt)) + topoY[idxInt+1] * (topoIdxFloat - idxInt);
                     if (pt.p < pMin || pt.p > topoAtX || pt.x < xMin || pt.x > xMax || pt.age > pt.lifespan) { resetParticle(pt); continue; }
@@ -597,6 +601,12 @@ export function initUI() {
 
             document.getElementById('btn-corte-time-prev')?.addEventListener('click', () => moverCorteSlider(-1));
             document.getElementById('btn-corte-time-next')?.addEventListener('click', () => moverCorteSlider(1));
+            document.getElementById('corte-wind-speed')?.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    state.crossSectionWindSpeed = val;
+                    const lbl = document.getElementById('corte-wind-speed-label');
+                    if (lbl) lbl.innerText = `${val.toFixed(1)}x`;
+                });
         }
 
     // Constructor Paletas
