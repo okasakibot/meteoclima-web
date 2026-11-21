@@ -30,6 +30,16 @@ function setChunkCache(key, data) {
 // ==========================================
 // 1. DESCARGA Y DESENCRIPTACIÓN (ZARR)
 // ==========================================
+async function decompressIfGzip(buffer) {
+    const bytes = new Uint8Array(buffer);
+    if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        const ds = new DecompressionStream('gzip');
+        const stream = new Blob([buffer]).stream().pipeThrough(ds);
+        return await new Response(stream).arrayBuffer();
+    }
+    return buffer;
+}
+
 export async function descargarCapa(variableBase, timeIdx, levelIdx = null) {
     let variableReal = variableBase;
     let indexNivelZarr = levelIdx;
@@ -73,17 +83,19 @@ export async function descargarCapa(variableBase, timeIdx, levelIdx = null) {
             const encryptedBuffer = await response.arrayBuffer();
             if (encryptedBuffer.byteLength <= 12) return null;
 
-            let result;
+            let rawBuffer;
             try {
-                const decryptedBuffer = await crypto.subtle.decrypt(
+                rawBuffer = await crypto.subtle.decrypt(
                     { name: "AES-GCM", iv: new Uint8Array(encryptedBuffer.slice(0, 12)) },
                     state.cryptoKey,
                     encryptedBuffer.slice(12)
                 );
-                result = new Float32Array(decryptedBuffer);
             } catch {
-                result = new Float32Array(encryptedBuffer);
+                rawBuffer = encryptedBuffer;
             }
+
+            const finalBuffer = await decompressIfGzip(rawBuffer);
+            const result = new Float32Array(finalBuffer);
 
             setChunkCache(cacheKey, result);
             return result;
