@@ -291,9 +291,6 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             },
             contours: {
                 showlines: false,
-                start: 70,
-                end: 100,
-                size: 5
             },
             line: {
                 smoothing: 1.3 // Máximo suavizado curvilíneo de contornos en Plotly
