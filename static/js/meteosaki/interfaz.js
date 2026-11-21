@@ -318,15 +318,7 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
             }
         };
 
-        const layout = {
-                    title: { text: `Perfil Vertical Transversal (${isLonCut ? 'Longitudinal' : 'Latitudinal'})`, font: { color: 'white' } },
-                    plot_bgcolor: '#000000',
-                    paper_bgcolor: '#000000',
-                    yaxis: { title: 'Presión (hPa)', type: 'linear', autorange: false, range: [1000, 100], gridcolor: '#333', color: 'white', fixedrange: true },
-                    xaxis: { title: isLonCut ? 'Longitud (°W/°E)' : 'Latitud (°S/°N)', tickformat: '.2f', gridcolor: '#333', color: 'white', fixedrange: true },
-                    margin: { t: 50, b: 50, l: 60, r: 20 },
-                    font: { family: 'Inter, sans-serif' }
-                };
+        const layout = { title: { text: `Perfil Vertical Transversal (${isLonCut ? 'Longitudinal' : 'Latitudinal'})`, font: {color: 'white'} }, plot_bgcolor: '#000000', paper_bgcolor: '#000000', yaxis: { title: 'Presión (hPa)', type: 'linear', autorange: false, range: [1000, 100], gridcolor: '#333', color: 'white', fixedrange: true }, xaxis: { title: isLonCut ? 'Longitud (°W/°E)' : 'Latitud (°S/°N)', tickformat: '.2f', gridcolor: '#333', color: 'white', fixedrange: true }, margin: { t: 50, b: 50, l: 60, r: 20 }, font: { family: 'Inter, sans-serif' } };
 
         Plotly.newPlot('plot-container', [traceTopo, traceR], layout, {responsive: true, displayModeBar: false}).then(() => {
             const canvas = document.getElementById('wind-canvas'); const ctx = canvas.getContext('2d'); const gd = document.getElementById('plot-container');
