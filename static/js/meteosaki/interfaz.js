@@ -277,27 +277,38 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
         container.innerHTML = `<div id="plot-container" class="w-full h-full absolute top-0 left-0 z-10 bg-[#000000]"></div><canvas id="wind-canvas" class="w-full h-full absolute top-0 left-0 z-20 pointer-events-none"></canvas><button id="btn-toggle-cross-wind" class="absolute top-4 right-4 z-30 px-3 py-1 bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded shadow-lg opacity-80 hover:opacity-100 transition">⏸️ Ocultar Estelas</button>`;
 
         const traceR = {
-            z: zMatrix,
-            x: ejeX,
-            y: validNiveles,
-            type: 'contour',
-            zmin: 0,
-            zmax: 100,
-            colorscale: [[0.0, 'black'], [0.7, 'black'], [0.7, 'yellow'], [0.85, 'green'], [1.0, 'blue']],
-            colorbar: {
-                title: 'Humedad Relativa (%)',
-                tickfont: { color: 'white' },
-                titlefont: { color: 'white' }
-            },
-            contours: {
-                showlines: false,
-            },
-            line: {
-                smoothing: 1.3 // Máximo suavizado curvilíneo de contornos en Plotly
-            },
-            connectgaps: false,
-            hoverinfo: 'x+y+z'
-        };
+          z: zMatrix,
+          x: ejeX,
+          y: validNiveles,
+          type: 'contour',
+          zauto: false,
+          zmin: 0,
+          zmax: 100,
+          autocontour: false,
+          colorscale: [
+              [0.0, 'black'],
+              [0.7, 'black'],
+              [0.7, 'yellow'],
+              [0.85, 'green'],
+              [1.0, 'blue']
+          ],
+          colorbar: {
+              title: 'Humedad Relativa (%)',
+              tickfont: { color: 'white' },
+              titlefont: { color: 'white' }
+          },
+          contours: {
+              showlines: false,
+              start: 0,
+              end: 100,
+              size: 10
+          },
+          line: {
+              smoothing: 1.3
+          },
+          connectgaps: false,
+          hoverinfo: 'x+y+z'
+      };
 
         const traceTopo = {
             x: [...ejeX, ejeX[numPoints - 1], ejeX[0]],
