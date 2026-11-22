@@ -1,5 +1,3 @@
-// static/js/main.js
-
 // Importamos los inicializadores de nuestros módulos
 import { initAuth } from './auth.js';
 import { initUI } from './interfaz.js';
@@ -13,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initUI();
 
     // 2. Inicializar la Autenticación
-    // (Verifica la sesión en Firebase. Si el usuario está logueado, 
+    // (Verifica la sesión en Firebase. Si el usuario está logueado,
     // descargará la llave AES, cargará el mapa base y renderizará los datos iniciales)
     initAuth();
 });
@@ -21,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // EXPOSICIÓN DE FUNCIONES GLOBALES RESTANTES
 // ==========================================
-// Si tienes botones en tu HTML que usan "onclick='funcion()'", 
+// Si tienes botones en tu HTML que usan "onclick='funcion()'",
 // deben estar expuestos al objeto window.
 window.abrirModalNiveles = function() {
     let m = document.getElementById('modal-niveles');

@@ -93,7 +93,7 @@
                 <h2 class="text-lg font-bold flex items-center gap-2">🏆 Rangos de Pronosticador</h2>
                 <button id="btn-cerrar-niveles" class="text-slate-400 hover:text-red-400 font-bold text-2xl transition-colors">&times;</button>
             </div>
-            <div class="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
+            <div class="p-5 max-h-[80vh] overflow-y-auto space-y-3 max-h-[70vh] overflow-y-auto">
                 <p class="text-sm text-slate-400 mb-3 font-medium text-center">La práctica hace al maestro.</p>
 
                 <div class="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
@@ -197,77 +197,97 @@
         </div>
     </div>
 
-    <!-- BARRA INFERIOR UNIFICADA (Totalmente Adaptativa) -->
-    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full h-10 bg-slate-900/95 text-white flex items-center justify-between px-4 z-[1000] text-[11px] font-mono transition-transform duration-300 border-t border-slate-700 shadow-[0_-4px_10px_rgba(0,0,0,0.5)] gap-4">
+    <!-- BARRA INFERIOR UNIFICADA (2 Filas: Controles arriba + Colorbars horizontales abajo) -->
+    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full bg-slate-900/95 text-white flex flex-col px-3 py-1.5 z-[1000] text-[11px] font-mono transition-transform duration-300 border-t border-slate-700 shadow-[0_-4px_10px_rgba(0,0,0,0.5)] gap-1.5">
 
-        <!-- 1. Contenedor Hover adaptativo (min-width para estabilidad, pero crece si necesita) -->
-        <div id="hover-info" class="min-w-[180px] whitespace-nowrap text-emerald-400 font-bold shrink-0">
-            <span id="hover-text">📍 --.--, --.-- | --</span>
-        </div>
+        <!-- FILA 1: Hover + Variables + Slider amplio + Botones -->
+        <div class="w-full flex items-center justify-between gap-2 flex-wrap">
 
-        <!-- 2. Controles de Variables (Anchos fijos para evitar brincos) -->
-        <div class="flex items-center gap-2 w-[280px] shrink-0 ml-2">
-            <select id="var-select" class="w-[150px] bg-slate-800 border border-slate-600 rounded px-2 py-0.5 outline-none cursor-pointer hover:bg-slate-700 transition">
-              <optgroup label="Superficie">
-                  <option value="t2m">Temperatura a 2m (t2m)</option>
-                  <option value="tp">Precipitación Total (tp)</option>
-                  <option value="msl">Presión Nivel del Mar (msl)</option>
-              </optgroup>
-              <optgroup label="Variables 3D">
-                  <option value="vo">Vorticidad relativa (vo)</option>
-                  <option value="d">Divergencia (d)</option>
-                  <option value="conv_q">Conv. Humedad (conv_q)</option>
-                  <option value="adv_q">Adv. Humedad (adv_q)</option>
-                  <option value="adv_t">Adv. Temperatura (adv_t)</option>
-                  <option value="w" selected>Velocidad del Viento</option>
-                  <option value="r">Humedad Relativa (r)</option>
-                  <option value="q">Humedad Específica (q)</option>
-              </optgroup>
-            </select>
+            <!-- 1. Hover -->
+            <div id="hover-info" class="min-w-[165px] whitespace-nowrap text-emerald-400 font-bold shrink-0">
+                <span id="hover-text">📍 --.--, --.-- | --</span>
+            </div>
 
-            <div class="flex items-center gap-1">
-              <span>Nivel:</span>
-              <select id="level-select" class="w-[85px] bg-slate-800 border border-slate-600 rounded px-2 py-0.5 outline-none cursor-pointer hover:bg-slate-700 transition">
-                  <optgroup id="optgroup-levels" label="Presión">
-                      <option value="9">200 hPa</option>
-                      <option value="8">250 hPa</option>
-                      <option value="7">300 hPa</option>
-                      <option value="6">400 hPa</option>
-                      <option value="5">500 hPa</option>
-                      <option value="4">600 hPa</option>
-                      <option value="3">700 hPa</option>
-                      <option value="2">850 hPa</option>
-                      <option value="1">925 hPa</option>
-                      <!--<option value="0">1000 hPa</option>-->
-                  </optgroup>
-                  <optgroup id="optgroup-sfc" label="Superficie">
-                      <option value="surface" selected>SFC</option>
-                  </optgroup>
-              </select>
+            <!-- 2. Variables y Nivel -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <select id="var-select" class="w-[140px] bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 outline-none cursor-pointer hover:bg-slate-700 transition">
+                    <option value="none">Ninguna (Solo Mapa/Sat)</option>
+                    <optgroup label="Superficie">
+                        <option value="t2m">Temperatura a 2m (t2m)</option>
+                        <option value="tp">Precipitación Total (tp)</option>
+                        <option value="msl">Presión Nivel del Mar (msl)</option>
+                    </optgroup>
+                    <optgroup label="Variables 3D">
+                        <option value="vo">Vorticidad relativa (vo)</option>
+                        <option value="d">Divergencia (d)</option>
+                        <option value="conv_q">Conv. Humedad (conv_q)</option>
+                        <option value="adv_q">Adv. Humedad (adv_q)</option>
+                        <option value="adv_t">Adv. Temperatura (adv_t)</option>
+                        <option value="w" selected>Velocidad del Viento</option>
+                        <option value="r">Humedad Relativa (r)</option>
+                        <option value="q">Humedad Específica (q)</option>
+                    </optgroup>
+                </select>
+
+                <div class="flex items-center gap-1">
+                    <span class="text-slate-400">Nivel:</span>
+                    <select id="level-select" class="w-[78px] bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 outline-none cursor-pointer hover:bg-slate-700 transition">
+                        <optgroup id="optgroup-levels" label="Presión">
+                            <option value="9">200 hPa</option>
+                            <option value="8">250 hPa</option>
+                            <option value="7">300 hPa</option>
+                            <option value="6">400 hPa</option>
+                            <option value="5">500 hPa</option>
+                            <option value="4">600 hPa</option>
+                            <option value="3">700 hPa</option>
+                            <option value="2">850 hPa</option>
+                            <option value="1">925 hPa</option>
+                        </optgroup>
+                        <optgroup id="optgroup-sfc" label="Superficie">
+                            <option value="surface" selected>SFC</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 3. Slider de Tiempo (absorbe todo el espacio libre) -->
+            <div class="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded border border-slate-600 flex-1 min-w-[180px]">
+                <button id="btn-time-prev" class="px-1.5 text-slate-300 hover:text-white font-bold text-sm leading-none">&lsaquo;</button>
+                <input type="range" id="time-slider" min="0" max="40" value="0" class="w-full cursor-pointer accent-blue-500">
+                <button id="btn-time-next" class="px-1.5 text-slate-300 hover:text-white font-bold text-sm leading-none">&rsaquo;</button>
+                <span id="time-display" class="font-bold text-blue-400 w-11 text-right ml-1 shrink-0">+0h</span>
+            </div>
+
+            <!-- 4. Controles Satélite, Rayos, Ríos y Acciones -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <select id="sat-select" class="bg-slate-800 border border-violet-500/70 rounded px-1.5 py-0.5 text-violet-200 font-bold outline-none cursor-pointer hover:bg-slate-700 transition" title="Capa Satelital GOES-19">
+                    <option value="none" selected>🛰️ Sat: OFF</option>
+                    <option value="ir">🛰️ IR (C13)</option>
+                    <option value="wv">🛰️ WV (C09)</option>
+                </select>
+                <button id="btn-glm-toggle" disabled class="px-2 py-0.5 bg-slate-700 text-slate-300 rounded transition font-bold border border-slate-600 opacity-40 cursor-not-allowed" title="Habilitado al activar GOES">⚡ Rayos: OFF</button>
+                <button id="btn-rivers-toggle" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition font-bold border border-slate-500">🌊 Ríos: OFF</button>
+                <button id="btn-wind-toggle" class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition font-bold border border-blue-400">🌬️ Viento: ON</button>
+                <button id="btn-cross-section" class="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded transition font-bold border border-purple-400">📐 Corte</button>
+                <button id="btn-config" class="px-2 py-0.5 bg-slate-600 hover:bg-slate-500 text-white rounded transition font-bold border border-slate-400" title="Configuración Visual">⚙️</button>
+                <button id="btn-hide-ui" class="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded transition font-bold" title="Ocultar Interfaz">🔽</button>
             </div>
         </div>
 
-        <!-- 3. Slider de Tiempo Dinámico (flex-1 permite que absorba el espacio sobrante) -->
-        <div class="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded border border-slate-600 flex-1 min-w-[200px] max-w-[600px] mx-auto">
-            <button id="btn-time-prev" class="px-2 text-slate-300 hover:text-white font-bold text-sm leading-none">&lsaquo;</button>
-            <input type="range" id="time-slider" min="0" max="40" value="0" class="w-full cursor-pointer accent-blue-500">
-            <button id="btn-time-next" class="px-2 text-slate-300 hover:text-white font-bold text-sm leading-none">&rsaquo;</button>
-            <span id="time-display" class="font-bold text-blue-400 w-10 text-right ml-1 shrink-0">+0h</span>
-        </div>
-
-        <!-- 4. Barra de colores cliqueable -->
-        <div id="colorbar-container" class="hidden flex items-center gap-2 w-48 bg-slate-800 px-2 py-0.5 rounded border border-slate-600 cursor-pointer hover:bg-slate-700 transition shrink-0" title="Configurar Paleta">
-            <span id="cb-min" class="text-[9px] text-gray-300">0</span>
-            <div class="h-1.5 flex-1 rounded" style="background: linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);"></div>
-            <span id="cb-max" class="text-[9px] text-gray-300">100</span>
-        </div>
-
-        <!-- 5. Contenedor de Botones de Acción (shrink-0 para que no se aplasten) -->
-        <div class="flex items-center gap-2 shrink-0">
-            <button id="btn-wind-toggle" class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition font-bold border border-blue-400">🌬️ Viento: ON</button>
-            <button id="btn-cross-section" class="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded transition font-bold border border-purple-400">📐 Corte</button>
-            <button id="btn-config" class="px-2 py-0.5 bg-slate-600 hover:bg-slate-500 text-white rounded transition font-bold border border-slate-400" title="Configuración Visual">⚙️</button>
-            <button id="btn-hide-ui" class="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded transition font-bold ml-2" title="Ocultar Interfaz">Ocultar UI 🔽</button>
+        <!-- FILA 2: Doble Colorbar Horizontal a todo lo ancho (lado a lado) -->
+        <div id="colorbar-container" class="w-full flex items-center gap-2 cursor-pointer" title="Configurar Paleta">
+            <!-- Colorbar Modelo -->
+            <div id="model-colorbar-wrap" class="hidden flex-1 flex items-center gap-2 bg-slate-800/90 px-2.5 py-0.5 rounded border border-slate-600 hover:bg-slate-700 transition">
+                <span id="cb-min" class="text-[10px] text-gray-300 shrink-0">0</span>
+                <div class="cb-gradient h-2 flex-1 rounded" style="background: linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);"></div>
+                <span id="cb-max" class="text-[10px] text-gray-300 shrink-0">100</span>
+            </div>
+            <!-- Colorbar GOES -->
+            <div id="goes-colorbar-wrap" class="hidden flex-1 flex items-center gap-2 bg-slate-800/90 px-2.5 py-0.5 rounded border border-violet-500/60">
+                <span id="goes-cb-min" class="text-[10px] text-violet-200 shrink-0">-90°C</span>
+                <canvas id="goes-colorbar-canvas" width="512" height="8" class="h-2 flex-1 rounded"></canvas>
+                <span id="goes-cb-max" class="text-[10px] text-violet-200 shrink-0">+50°C</span>
+            </div>
         </div>
 
     </div> <!-- FINAL de bottom-bar -->
@@ -284,16 +304,15 @@
                 <button id="btn-close-config" class="hover:text-red-400 font-bold text-xl transition-colors">&times;</button>
             </div>
 
-            <div class="p-5 flex flex-col gap-4">
+            <div class="p-5 max-h-[80vh] overflow-y-auto flex flex-col gap-4">
               <!-- Estilo del Mapa Base -->
               <div>
                   <label class="block font-bold mb-1 text-slate-300">Mapa Base:</label>
                   <select id="config-basemap" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 outline-none">
+                      <option value="satellite1" selected>Esri Only Satellite</option>
                       <option value="osm">OpenStreetMap Light</option>
                       <option value="dark">Esri Dark Map</option>
-                      <option value="satellite1">Esri Only Satellite</option>
                       <option value="satellite2">Google Satellite</option>
-                      <option value="terrain-esri" selected>Esri Satellite+References</option>
                       <option value="terrain-stamen">Stamen Terrain</option>
                   </select>
               </div>
@@ -343,14 +362,13 @@
                     <button id="btn-apply-custom" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-1.5 rounded mt-2 text-sm shadow-md transition">Aplicar Paleta</button>
                 </div>
 
-                <!-- Opacidad de Capas -->
+                <!-- Gestor de Capas (Orden y Transparencia) -->
                 <div>
-                  <label class="block font-bold mb-1 text-slate-300 flex justify-between">
-                      Opacidad Capa: <span id="lbl-opacity-modal">70%</span>
-                  </label>
-                  <!-- Asegúrate de tener min="0", max="1", y step="0.05" -->
-                  <input type="range" id="config-opacity-modal" min="0" max="1" step="0.05" value="0.7" class="w-full accent-blue-500">
-              </div>
+                    <label class="block font-bold mb-1.5 text-slate-300">Orden y Transparencia de Capas:</label>
+                    <div id="layer-manager-list" class="flex flex-col gap-1.5">
+                        <!-- Generado dinámicamente por renderLayerManager() -->
+                    </div>
+                </div>
               <!-- Velocidad del Viento (Partículas) (IDs ACTUALIZADOS AQUÍ SI ES NECESARIO) -->
               <div>
                   <label class="block font-bold mb-1 text-slate-300 flex justify-between">

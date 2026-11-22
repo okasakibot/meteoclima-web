@@ -1,5 +1,3 @@
-// static/js/datos.js
-
 import {
     state, escalas, traductorSuperficie,
     latInicio, latFin, lonInicio, lonFin, dx, dy,
@@ -7,9 +5,10 @@ import {
     lonOesteBorde, lonEsteBorde, limitesData
 } from './config.js';
 
-import { map } from './mapa.js';
+import { map, applyLayerStyles } from './mapa.js';
 import { actualizarTextosFecha } from './interfaz.js';
 import { ForecastRenderer, buildForecastLUT, createHeatCanvasLayer } from './renderizador.js';
+import { renderGoesFrame, clearGoesCanvas } from './goes_controller.js';
 
 const MAX_CACHE_CHUNKS = 350; // ~155 MB RAM (caben ~7 cortes transversales completos)
 const chunkCache = new Map();
@@ -143,73 +142,114 @@ let mapRenderToken = 0;
 // ==========================================
 // 2. ORQUESTADOR PRINCIPAL DE ACTUALIZACIÓN
 // ==========================================
-export async function actualizarMapa() {
+export function clearModelHeat() {
+    if (state.heatLayer) {
+        map.removeLayer(state.heatLayer);
+        state.heatLayer = null;
+    }
+    state.currentBaseArray = null;
+    document.getElementById('model-colorbar-wrap')?.classList.add('hidden');
+}
+
+// ==========================================
+// 2. ORQUESTADOR PRINCIPAL DE ACTUALIZACIÓN
+// ==========================================
+export async function actualizarMapa(forceModelReload = false) {
     const myToken = ++mapRenderToken;
     const loadingUI = document.getElementById('loading-indicator');
     if (loadingUI) loadingUI.classList.remove('hidden');
 
     const variable = document.getElementById('var-select').value;
     const timeSlider = document.getElementById('time-slider');
-    const timeIdx = timeSlider.value;
+    const sliderVal = Number(timeSlider.value);
     const levelIdx = document.getElementById('level-select').value;
 
-    try {
-        let uArray = null, vArray = null, baseArray = null;
-        const requiereViento = state.isWindActive || variable === 'w';
-        const promesas = [];
+    const isGoesMode = state.goesVar !== 'none' && state.syncedFrames.length > 0;
+    let effectiveModelIdx = sliderVal;
 
-        promesas.push((variable !== 'w') ? descargarCapa(variable, timeIdx, levelIdx) : Promise.resolve(null));
-        if (requiereViento) {
-            promesas.push(descargarCapa('u', timeIdx, levelIdx));
-            promesas.push(descargarCapa('v', timeIdx, levelIdx));
+    try {
+        // 1. Disparar render de GOES en paralelo si está activo
+        let goesPromise = Promise.resolve();
+        if (isGoesMode) {
+            const frame = state.syncedFrames[Math.max(0, Math.min(sliderVal, state.syncedFrames.length - 1))];
+            effectiveModelIdx = frame ? frame.modelIdx : 0;
+            goesPromise = renderGoesFrame(sliderVal);
+        } else {
+            clearGoesCanvas();
         }
 
-        const resultados = await Promise.all(promesas);
-        if (myToken !== mapRenderToken) return; // Descartar si ya se pidió otro frame
+        // 2. Optimización: si estamos en modo GOES y el paso del modelo (cada 3h) no cambió, no recargar modelo/viento
+        const debeActualizarModelo = forceModelReload || !isGoesMode || effectiveModelIdx !== state.lastModelIdx;
 
-        if (variable === 'w') {
-            uArray = resultados[1];
-            vArray = resultados[2];
-            if (uArray && vArray) {
-                baseArray = new Float32Array(uArray.length);
-                for (let i = 0; i < uArray.length; i++) {
-                    baseArray[i] = (!isNaN(uArray[i]) && !isNaN(vArray[i]))
-                        ? Math.hypot(uArray[i], vArray[i])
-                        : NaN;
-                }
-            }
-        } else {
-            baseArray = resultados[0];
+        if (debeActualizarModelo) {
+            let uArray = null, vArray = null, baseArray = null;
+            const requiereViento = state.isWindActive || variable === 'w';
+            const promesas = [];
+
+            promesas.push((variable !== 'w' && variable !== 'none')
+                ? descargarCapa(variable, effectiveModelIdx, levelIdx)
+                : Promise.resolve(null));
+
             if (requiereViento) {
+                promesas.push(descargarCapa('u', effectiveModelIdx, levelIdx));
+                promesas.push(descargarCapa('v', effectiveModelIdx, levelIdx));
+            }
+
+            const [resultados] = await Promise.all([Promise.all(promesas), goesPromise]);
+            if (myToken !== mapRenderToken) return;
+
+            if (variable === 'w') {
                 uArray = resultados[1];
                 vArray = resultados[2];
+                if (uArray && vArray) {
+                    baseArray = new Float32Array(uArray.length);
+                    for (let i = 0; i < uArray.length; i++) {
+                        baseArray[i] = (!isNaN(uArray[i]) && !isNaN(vArray[i]))
+                            ? Math.hypot(uArray[i], vArray[i])
+                            : NaN;
+                    }
+                }
+            } else {
+                baseArray = resultados[0];
+                if (requiereViento) {
+                    uArray = resultados[1];
+                    vArray = resultados[2];
+                }
             }
+
+            state.currentBaseArray = baseArray;
+            state.currentUArray = requiereViento ? uArray : null;
+            state.currentVArray = requiereViento ? vArray : null;
+            state.lastModelIdx = effectiveModelIdx;
+
+            if (variable === 'none' || !baseArray) {
+                clearModelHeat();
+            } else {
+                renderizarCalor(baseArray, variable);
+            }
+
+            if (state.isWindActive && uArray && vArray) {
+                renderizarViento(uArray, vArray);
+            } else if (state.windLayer) {
+                map.removeLayer(state.windLayer);
+                state.windLayer = null;
+            }
+
+            // Precargar los 2 siguientes pasos del modelo en RAM
+            prefetchMapa2D(variable === 'none' ? 'w' : variable, effectiveModelIdx, levelIdx, 40, 2);
+        } else {
+            await goesPromise;
+            if (myToken !== mapRenderToken) return;
         }
 
-        state.currentBaseArray = baseArray;
-        state.currentUArray = requiereViento ? uArray : null;
-        state.currentVArray = requiereViento ? vArray : null;
-
-        if (baseArray) renderizarCalor(baseArray, variable);
-
-        if (state.isWindActive && uArray && vArray) {
-            renderizarViento(uArray, vArray);
-        } else if (state.windLayer) {
-            map.removeLayer(state.windLayer);
-            state.windLayer = null;
-        }
-
-        // Precargar silenciosamente los 2 siguientes frames en RAM
-        const maxTime = parseInt(timeSlider.max || '40', 10);
-        prefetchMapa2D(variable, timeIdx, levelIdx, maxTime, 2);
-
+        applyLayerStyles();
     } catch (error) {
         console.error("Error al actualizar el mapa:", error);
     } finally {
         if (myToken === mapRenderToken && loadingUI) {
             loadingUI.classList.add('hidden');
         }
-        actualizarTextosFecha(timeSlider.value * 3);
+        actualizarTextosFecha(sliderVal);
     }
 }
 
@@ -279,12 +319,9 @@ export function renderizarCalor(dataArray, variable) {
 
     const elCbMin = document.getElementById('cb-min');
     const elCbMax = document.getElementById('cb-max');
-    const elCbContainer = document.getElementById('colorbar-container');
-    const cbGradient = elCbContainer ? elCbContainer.querySelector('div') : null;
+    const elModelWrap = document.getElementById('model-colorbar-wrap');
+    const cbGradient = elModelWrap ? elModelWrap.querySelector('.cb-gradient') : null;
     const tipoColorR = document.getElementById('config-colormap-r')?.value || 'continuous';
-    const opacidadGlobal = document.getElementById('config-opacity-modal')
-        ? parseFloat(document.getElementById('config-opacity-modal').value)
-        : 0.7;
 
     if (tipoColorR === 'custom' && state.customPaletteStops?.length >= 2) {
         min = state.customPaletteMin;
@@ -293,7 +330,7 @@ export function renderizarCalor(dataArray, variable) {
 
     if (elCbMin) elCbMin.innerText = Number(min.toFixed(1)) + (escalas[variable]?.unit || '');
     if (elCbMax) elCbMax.innerText = Number(max.toFixed(1)) + (escalas[variable]?.unit || '');
-    if (elCbContainer) elCbContainer.classList.remove('hidden');
+    if (elModelWrap) elModelWrap.classList.remove('hidden');
 
     if (cbGradient) {
         if (['r', 'r2m'].includes(variable) && tipoColorR === 'discrete') cbGradient.style.background = 'linear-gradient(to right, #000000 0%, #000000 60%, #e5f5e0 60%, #a1d99b 70%, #41ab5d 80%, #2b8cbe 90%, #084081 100%)';
@@ -308,6 +345,6 @@ export function renderizarCalor(dataArray, variable) {
     if (!state.heatLayer) {
         state.heatLayer = createHeatCanvasLayer(forecastRenderer).addTo(map);
     }
-    state.heatLayer.setOpacity(opacidadGlobal);
+    state.heatLayer.setOpacity(1.0);
     forecastRenderer.render(map.getBounds());
 }

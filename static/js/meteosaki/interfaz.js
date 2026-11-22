@@ -1,11 +1,10 @@
-// static/js/interfaz.js
-
 import {
     state, escalas, latInicio, latFin, lonInicio, lonFin,
     dx, dy, width, height, limitesData
 } from './config.js';
-import { map, cargarMapaBase } from './mapa.js';
+import { map, cargarMapaBase, applyLayerStyles, setBordersVisible, setLabelsVisible } from './mapa.js';
 import { actualizarMapa, descargarCapa, renderizarCalor, renderizarViento, prefetchCorteTransversal } from './datos.js';
+import { initGoesSystem, buildSyncedFrames, setRiversVisible, drawGoesColorbar } from './goes_controller.js';
 
 // ==========================================
 // 1. FORMATO DE FECHAS
@@ -33,12 +32,23 @@ function formatForecastDate(baseDateStr, addedHours) {
     return `Error de fecha`;
 }
 
-export function actualizarTextosFecha(horasAgregadas) {
+export function actualizarTextosFecha(sliderVal) {
     const elDate = document.getElementById('top-date-text');
-    if (elDate) elDate.innerText = formatForecastDate(state.fechaActual, horasAgregadas);
-
     const elTimeDisplay = document.getElementById('time-display');
-    if(elTimeDisplay) elTimeDisplay.innerText = `+${horasAgregadas}h`;
+
+    if (state.goesVar !== 'none' && state.syncedFrames.length > 0) {
+        const idx = Math.max(0, Math.min(Number(sliderVal), state.syncedFrames.length - 1));
+        const frame = state.syncedFrames[idx];
+        if (frame) {
+            if (elDate) elDate.innerText = `🛰️ ${frame.tKey.replace('T', ' ')} UTC  |  Mod: +${frame.modelIdx * 3}h`;
+            if (elTimeDisplay) elTimeDisplay.innerText = `${frame.tKey.slice(11, 16)}Z`;
+            return;
+        }
+    }
+
+    const horasAgregadas = Number(sliderVal) * 3;
+    if (elDate) elDate.innerText = formatForecastDate(state.fechaActual, horasAgregadas);
+    if (elTimeDisplay) elTimeDisplay.innerText = `+${horasAgregadas}h`;
 }
 
 // ==========================================
@@ -46,7 +56,7 @@ export function actualizarTextosFecha(horasAgregadas) {
 // ==========================================
 map.on('mousemove', (e) => {
     const hoverText = document.getElementById('hover-text');
-    if (!limitesData.contains(e.latlng) || !state.currentBaseArray) {
+    if (!limitesData.contains(e.latlng)) {
         hoverText.innerText = `📍 Fuera de dominio`;
         return;
     }
@@ -57,28 +67,25 @@ map.on('mousemove', (e) => {
 
     if (y >= 0 && y < height && x >= 0 && x < width) {
         let idx = y * width + x;
-        let val = state.currentBaseArray[idx];
         let varName = document.getElementById('var-select').value;
+        let val = state.currentBaseArray ? state.currentBaseArray[idx] : null;
         let unit = escalas[varName] ? escalas[varName].unit : '';
         let txtLat = lat > 0 ? `${lat.toFixed(2)}°N` : `${Math.abs(lat).toFixed(2)}°S`;
         let txtLon = lon > 0 ? `${lon.toFixed(2)}°E` : `${Math.abs(lon).toFixed(2)}°W`;
         let strFinal = `📍 ${txtLat}, ${txtLon} | `;
 
-        if (val !== null && !isNaN(val) && val < 1e20) {
+        if (varName !== 'none' && val !== null && !isNaN(val) && val < 1e20) {
             if (varName !== 'w') strFinal += `${val.toFixed(1)}${unit}`;
-            if (state.currentUArray && state.currentVArray) {
-                let u = state.currentUArray[idx]; let v = state.currentVArray[idx];
-                if (!isNaN(u) && !isNaN(v)) {
-                    let dir = (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360;
-                    if (varName === 'w') strFinal += `${val.toFixed(1)}${unit}, ${dir.toFixed(0)}°`;
-                    else {
-                        let speed = Math.sqrt(u*u + v*v);
-                        strFinal += ` (🌬️ ${speed.toFixed(1)} m/s, ${dir.toFixed(0)}°)`;
-                    }
-                }
+        }
+
+        if (state.currentUArray && state.currentVArray) {
+            let u = state.currentUArray[idx]; let v = state.currentVArray[idx];
+            if (!isNaN(u) && !isNaN(v)) {
+                let dir = (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360;
+                let speed = Math.sqrt(u * u + v * v);
+                if (varName === 'w') strFinal += `${speed.toFixed(1)} m/s, ${dir.toFixed(0)}°`;
+                else strFinal += ` (🌬️ ${speed.toFixed(1)} m/s, ${dir.toFixed(0)}°)`;
             }
-        } else {
-            strFinal += `Sin datos`;
         }
         hoverText.innerText = strFinal;
     }
@@ -129,7 +136,12 @@ map.on('click', (e) => {
         document.getElementById('input-lon-b').value = state.crossSectionPoints[1].lng.toFixed(2);
 
         document.getElementById('modal-corte').classList.remove('hidden');
-        procesarCorteTransversal(state.crossSectionPoints[0], state.crossSectionPoints[1], document.getElementById('time-slider').value);
+
+        const sliderVal = Number(document.getElementById('time-slider').value);
+        const corteIdx = (state.goesVar !== 'none' && state.syncedFrames[sliderVal])
+            ? state.syncedFrames[sliderVal].modelIdx
+            : sliderVal;
+        procesarCorteTransversal(state.crossSectionPoints[0], state.crossSectionPoints[1], corteIdx);
 
         state.isSelectingCrossSection = false;
         document.getElementById('btn-cross-section').classList.replace('bg-purple-600', 'bg-purple-100');
@@ -386,6 +398,75 @@ async function procesarCorteTransversal(p1, p2, forceTimeIdx = null) {
 // ==========================================
 // 4. EVENTOS DOM (UI)
 // ==========================================
+const LAYER_LABELS = {
+    labels:  '🏷️ Etiquetas',
+    borders: '🗺️ Fronteras',
+    glm:     '⚡ Rayos GLM',
+    rivers:  '🌊 Ríos AC',
+    wind:    '🌬️ Viento Animado',
+    goes:    '🛰️ Satélite GOES',
+    model:   '🌡️ Variable Modelo',
+};
+
+function renderLayerManager() {
+    const container = document.getElementById('layer-manager-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    state.layerOrder.forEach((layerId, idx) => {
+        const opVal = state.layerOpacity[layerId] ?? 1.0;
+        const hasToggle = layerId === 'labels' || layerId === 'borders';
+        const isChecked = layerId === 'labels' ? state.showLabels : state.showBorders;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded border border-slate-700 text-xs';
+        row.innerHTML = `
+            <div class="flex items-center gap-1.5 min-w-[140px]">
+                <div class="flex flex-col leading-none">
+                    <button class="btn-layer-up text-[9px] text-slate-400 hover:text-white disabled:opacity-25" ${idx === 0 ? 'disabled' : ''} title="Subir capa">▲</button>
+                    <button class="btn-layer-down text-[9px] text-slate-400 hover:text-white disabled:opacity-25" ${idx === state.layerOrder.length - 1 ? 'disabled' : ''} title="Bajar capa">▼</button>
+                </div>
+                ${hasToggle ? `<input type="checkbox" class="chk-layer-vis accent-blue-500 cursor-pointer" ${isChecked ? 'checked' : ''}>` : ''}
+                <span class="font-bold text-slate-200 truncate">${LAYER_LABELS[layerId] || layerId}</span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-1 justify-end">
+                <input type="range" class="rng-layer-op w-24 accent-blue-500 cursor-pointer" min="0" max="1" step="0.05" value="${opVal}">
+                <span class="lbl-layer-op w-8 text-right text-[10px] text-slate-400">${Math.round(opVal * 100)}%</span>
+            </div>
+        `;
+
+        row.querySelector('.btn-layer-up')?.addEventListener('click', () => {
+            if (idx > 0) {
+                [state.layerOrder[idx - 1], state.layerOrder[idx]] = [state.layerOrder[idx], state.layerOrder[idx - 1]];
+                applyLayerStyles();
+                renderLayerManager();
+            }
+        });
+
+        row.querySelector('.btn-layer-down')?.addEventListener('click', () => {
+            if (idx < state.layerOrder.length - 1) {
+                [state.layerOrder[idx + 1], state.layerOrder[idx]] = [state.layerOrder[idx], state.layerOrder[idx + 1]];
+                applyLayerStyles();
+                renderLayerManager();
+            }
+        });
+
+        row.querySelector('.chk-layer-vis')?.addEventListener('change', (e) => {
+            if (layerId === 'labels') setLabelsVisible(e.target.checked);
+            if (layerId === 'borders') setBordersVisible(e.target.checked);
+        });
+
+        row.querySelector('.rng-layer-op')?.addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            state.layerOpacity[layerId] = v;
+            row.querySelector('.lbl-layer-op').innerText = `${Math.round(v * 100)}%`;
+            applyLayerStyles();
+        });
+
+        container.appendChild(row);
+    });
+}
+
 export function initUI() {
     // Controles de Tiempo Generales
     const sliderTiempo = document.getElementById('time-slider');
@@ -396,8 +477,8 @@ export function initUI() {
         document.getElementById('btn-time-next')?.addEventListener('click', () => {
             if (parseInt(sliderTiempo.value) < parseInt(sliderTiempo.max)) { sliderTiempo.value++; sliderTiempo.dispatchEvent(new Event('input')); sliderTiempo.dispatchEvent(new Event('change')); }
         });
-        sliderTiempo.addEventListener('input', (e) => actualizarTextosFecha(e.target.value * 3));
-        sliderTiempo.addEventListener('change', actualizarMapa);
+        sliderTiempo.addEventListener('input', (e) => actualizarTextosFecha(e.target.value));
+        sliderTiempo.addEventListener('change', () => actualizarMapa(false));
     }
 
     // Modal Config y Paletas
@@ -450,7 +531,7 @@ export function initUI() {
         // 1. Clasificación de Variables
         const variablesSoloSuperficie = ['t2m', 'tp', 'msl'];
         // Ahora clasificamos las mixtas y las puramente 3D por separado para mayor claridad
-        const variablesMixtas = ['w', 'r', 'q', 'conv_q', 'adv_q', 'adv_t'];
+        const variablesMixtas = ['none', 'w', 'r', 'q', 'conv_q', 'adv_q', 'adv_t'];
         const variablesSoloNiveles = ['vo', 'd'];
 
         if(levelSelect && optgroupLevels && optgroupSfc) {
@@ -494,10 +575,10 @@ export function initUI() {
         }
 
         // Ejecutamos la actualización del mapa con los nuevos parámetros
-        actualizarMapa();
+        actualizarMapa(true);
     });
 
-    document.getElementById('level-select')?.addEventListener('change', actualizarMapa);
+    document.getElementById('level-select')?.addEventListener('change', () => actualizarMapa(true));
 
     // Botones de interfaz para ocultar/mostrar paneles
     document.getElementById('btn-hide-ui')?.addEventListener('click', () => {
@@ -540,7 +621,7 @@ export function initUI() {
         state.isWindActive = !state.isWindActive;
         btnWind.innerText = state.isWindActive ? "🌬️ Viento: ON" : "🌬️ Viento: OFF";
         btnWind.className = state.isWindActive ? "px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition font-bold border border-blue-400" : "px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded transition font-bold border border-red-400";
-        actualizarMapa();
+        actualizarMapa(true);
     });
 
     // Eventos del Modal Transversal
@@ -619,7 +700,7 @@ export function initUI() {
                   // Índice 1 corresponde a traceR dentro de [traceTopo, traceR]
                   Plotly.restyle(gd, { opacity: val }, [1]);
               }
-          });                
+          });
         }
 
     // Constructor Paletas
@@ -649,11 +730,83 @@ export function initUI() {
         state.customPaletteMin = minV; state.customPaletteMax = maxV; state.customPaletteStops = rawStops;
 
         let gStr = 'linear-gradient(to right'; rawStops.forEach(s => gStr += `, ${s.hex} ${Math.round(s.t * 100)}%`); gStr += ')';
-        if(document.querySelector('#colorbar-container div')) document.querySelector('#colorbar-container div').style.background = gStr;
+        const cbGrad = document.querySelector('#model-colorbar-wrap .cb-gradient');
+        if (cbGrad) cbGrad.style.background = gStr;
         if(document.getElementById('cb-min')) document.getElementById('cb-min').innerText = minV + '%';
         if(document.getElementById('cb-max')) document.getElementById('cb-max').innerText = maxV + '%';
 
         if (state.currentBaseArray) renderizarCalor(state.currentBaseArray, document.getElementById('var-select').value);
+    });
+
+    // Inicializar Gestor de Capas en el modal de configuración
+    renderLayerManager();
+
+    // Selector de Satélite GOES-19 (OFF / IR / WV)
+    const satSelect = document.getElementById('sat-select');
+    const btnGlm = document.getElementById('btn-glm-toggle');
+    satSelect?.addEventListener('change', async (e) => {
+        const wasGoesActive = state.goesVar !== 'none';
+        const val = e.target.value;
+        state.goesVar = val;
+
+        if (val !== 'none') {
+            await initGoesSystem();
+            const frames = buildSyncedFrames(40);
+            if (frames.length > 0 && sliderTiempo) {
+                sliderTiempo.min = '0';
+                sliderTiempo.max = String(frames.length - 1);
+                if (!wasGoesActive) {
+                    // Solo saltar al último frame al encender GOES desde OFF
+                    sliderTiempo.value = String(frames.length - 1);
+                    state.lastModelIdx = null;
+                } else {
+                    // Al cambiar entre IR y WV, mantener el frame actual
+                    const clamped = Math.max(0, Math.min(Number(sliderTiempo.value), frames.length - 1));
+                    sliderTiempo.value = String(clamped);
+                }
+            }
+            if (btnGlm) {
+                btnGlm.disabled = false;
+                btnGlm.classList.remove('opacity-40', 'cursor-not-allowed');
+            }
+            drawGoesColorbar(val);
+        } else {
+            state.lastModelIdx = null;
+            if (sliderTiempo) {
+                sliderTiempo.min = '0';
+                sliderTiempo.max = '40';
+                sliderTiempo.value = '0';
+            }
+            state.showGLM = false;
+            if (btnGlm) {
+                btnGlm.disabled = true;
+                btnGlm.innerText = '⚡ Rayos: OFF';
+                btnGlm.className = 'px-2 py-0.5 bg-slate-700 text-slate-300 rounded transition font-bold border border-slate-600 opacity-40 cursor-not-allowed';
+            }
+            drawGoesColorbar('none');
+        }
+        actualizarMapa(!wasGoesActive);
+    });
+
+    // Botón Rayos GLM (solo activo cuando GOES está ON)
+    btnGlm?.addEventListener('click', () => {
+        if (state.goesVar === 'none') return;
+        state.showGLM = !state.showGLM;
+        btnGlm.innerText = state.showGLM ? '⚡ Rayos: ON' : '⚡ Rayos: OFF';
+        btnGlm.className = state.showGLM
+            ? 'px-2 py-0.5 bg-violet-600 hover:bg-violet-500 text-white rounded transition font-bold border border-violet-400'
+            : 'px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition font-bold border border-slate-500';
+    });
+
+    // Botón Ríos AC (100% independiente)
+    const btnRivers = document.getElementById('btn-rivers-toggle');
+    btnRivers?.addEventListener('click', async () => {
+        const next = !state.showRivers;
+        btnRivers.innerText = next ? '🌊 Ríos: ON' : '🌊 Ríos: OFF';
+        btnRivers.className = next
+            ? 'px-2 py-0.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded transition font-bold border border-cyan-400'
+            : 'px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition font-bold border border-slate-500';
+        await setRiversVisible(next);
     });
 }
 
