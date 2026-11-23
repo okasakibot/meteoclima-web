@@ -143,8 +143,8 @@ export const GOES_PATHS = {
     GLM_JSON: `${DATA3_BASE}/goes19_glm_latest.json`,
     RIOS_GEOJSON: `${DATA3_BASE}/rios_ac_latest.geojson`,
     CUENCAS_GEOJSON: `${DATA3_BASE}/cuencas_ac_latest.geojson`,
-    ROADS_GEOJSON: `${DATA3_BASE}/data/carreteras_criticas_peru.geojson`,
-    ALERTS_JSON: `${DATA3_BASE}/data/alertas_latest.json`,
+    ROADS_GEOJSON: `${DATA3_BASE}/carreteras_criticas_peru.geojson`,
+    ALERTS_JSON: `${DATA3_BASE}/alertas_latest.json`,
     BORDERS_GEOJSON: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
 };
 
