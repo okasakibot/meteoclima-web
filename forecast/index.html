@@ -31,14 +31,39 @@
 <body>
 
   <!-- Pantalla de Login -->
-  <div id="auth-overlay" class="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center text-center p-4">
-      <h1 class="text-4xl font-bold text-white mb-2">Meteoclima Forecast</h1>
-      <p class="text-slate-300 mb-8">Acceso exclusivo para el equipo de Meteoclima</p>
-      <button id="btn-login" disabled class="px-6 py-3 bg-slate-600 text-white font-bold rounded-lg transition shadow-lg flex items-center gap-3 opacity-75 cursor-wait">
-        Verificando accesos...
-      </button>
-      <p id="auth-error" class="text-red-400 mt-4 hidden font-medium"></p>
-  </div>
+    <div id="auth-overlay" class="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center text-center p-4">
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl shadow-2xl p-7 w-full max-w-sm flex flex-col items-center">
+            <img src="../static/img/logo.svg" alt="Meteoclima" class="w-12 h-12 mb-3">
+            <h1 class="text-2xl font-bold text-white mb-1">Meteoclima Forecast</h1>
+            <p class="text-slate-400 text-xs mb-6">Acceso exclusivo para usuarios autorizados</p>
+
+            <!-- Botón Google -->
+            <button id="btn-login" disabled class="w-full px-5 py-2.5 bg-slate-600 text-white text-sm font-bold rounded-lg transition shadow-lg flex items-center justify-center gap-3 opacity-75 cursor-wait">
+                Verificando accesos...
+            </button>
+
+            <!-- Separador -->
+            <div class="w-full flex items-center gap-3 my-4">
+                <div class="h-px bg-slate-700 flex-1"></div>
+                <span class="text-[11px] text-slate-400">o con correo</span>
+                <div class="h-px bg-slate-700 flex-1"></div>
+            </div>
+
+            <!-- Formulario Email / Password -->
+            <form id="form-login-email" class="w-full flex flex-col gap-2.5 text-left">
+                <input type="email" id="login-email" required placeholder="Correo electrónico"
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500">
+                <input type="password" id="login-password" required placeholder="Contraseña"
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500">
+                <button type="submit" id="btn-login-email"
+                    class="w-full mt-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition shadow-md cursor-pointer">
+                    Iniciar sesión
+                </button>
+            </form>
+
+            <p id="auth-error" class="text-red-400 text-xs mt-4 hidden font-medium"></p>
+        </div>
+    </div>
 
     <!-- Contenedor del Mapa -->
     <div id="map"></div>
@@ -267,6 +292,8 @@
                 </select>
                 <button id="btn-glm-toggle" disabled class="px-2 py-0.5 bg-slate-700 text-slate-300 rounded transition font-bold border border-slate-600 opacity-40 cursor-not-allowed" title="Habilitado al activar GOES">⚡ Rayos: OFF</button>
                 <button id="btn-rivers-toggle" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition font-bold border border-slate-500">🌊 Ríos: OFF</button>
+                <button id="btn-roads-toggle" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition font-bold border border-slate-500">🛣️ Vías: OFF</button>
+                <button id="btn-alerts" class="px-2 py-0.5 bg-red-700 hover:bg-red-600 text-white rounded transition font-bold border border-red-500" title="Alertas de Quebradas y Carreteras">🚨 Alertas</button>
                 <button id="btn-wind-toggle" class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition font-bold border border-blue-400">🌬️ Viento: ON</button>
                 <button id="btn-cross-section" class="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded transition font-bold border border-purple-400">📐 Corte</button>
                 <button id="btn-config" class="px-2 py-0.5 bg-slate-600 hover:bg-slate-500 text-white rounded transition font-bold border border-slate-400" title="Configuración Visual">⚙️</button>
@@ -379,6 +406,51 @@
           </div>
       </div>
   </div>
+
+  <!-- MODAL DE ALERTAS (QUEBRADAS Y CARRETERAS) -->
+      <div id="modal-alerts" class="hidden fixed inset-0 bg-black/70 z-[10500] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div class="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-white font-mono text-xs">
+              <!-- Encabezado -->
+              <div class="bg-slate-900 px-4 py-3 flex justify-between items-center border-b border-slate-700">
+                  <div>
+                      <h2 class="font-bold text-sm flex items-center gap-2">🚨 Centro de Alertas Hidrometeorológicas</h2>
+                      <span id="alerts-meta" class="text-[10px] text-slate-400">Cargando metadatos...</span>
+                  </div>
+                  <button id="btn-close-alerts" class="text-slate-400 hover:text-red-400 font-bold text-2xl leading-none">&times;</button>
+              </div>
+
+              <!-- Pestañas + Filtros -->
+              <div class="bg-slate-900/60 px-4 py-2 border-b border-slate-700 flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex gap-1.5">
+                      <button id="tab-alerts-quebradas" class="px-3 py-1 rounded font-bold bg-cyan-600 text-white border border-cyan-400">🌊 Quebradas</button>
+                      <button id="tab-alerts-carreteras" class="px-3 py-1 rounded font-bold bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600">🛣️ Carreteras</button>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                      <select id="filter-alert-level" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-[11px] outline-none">
+                          <option value="all">Nivel: Todos</option>
+                          <option value="rojo">🔴 Solo Rojo</option>
+                          <option value="naranja">🟠 Solo Naranja</option>
+                          <option value="amarillo">🟡 Solo Amarillo</option>
+                      </select>
+                      <select id="filter-alert-horizon" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-[11px] outline-none">
+                          <option value="all">Horizonte: Todos</option>
+                          <option value="nowcast">⚡ Nowcast (0-3h)</option>
+                          <option value="pronostico">🌧️ Pronóstico (3-72h)</option>
+                          <option value="ambos">🔥 Ambos</option>
+                      </select>
+                  </div>
+              </div>
+
+              <!-- Resumen rápido -->
+              <div id="alerts-summary" class="px-4 py-2 bg-slate-800/80 border-b border-slate-700 flex items-center gap-3 text-[11px]"></div>
+
+              <!-- Lista de alertas -->
+              <div id="alerts-list" class="p-4 overflow-y-auto flex-1 space-y-2">
+                  <p class="text-slate-400 text-center py-6">Cargando alertas...</p>
+              </div>
+          </div>
+      </div>
 
     <!-- Script de Lógica Principal Local -->
     <script type="module" src="../static/js/meteosaki/main.js"></script>

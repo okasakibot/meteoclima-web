@@ -107,6 +107,7 @@ export const state = {
     goesVar: 'none',          // 'none' | 'ir' | 'wv'
     showGLM: false,
     showRivers: false,
+    showRoads: false,
     showBorders: true,
     showLabels: false,
     activeFlashes: [],
@@ -118,11 +119,12 @@ export const state = {
     lastModelIdx: null,
 
     // Gestor de capas (de arriba hacia abajo)
-    layerOrder: ['labels', 'borders', 'glm', 'rivers', 'wind', 'goes', 'model'],
+    layerOrder: ['labels', 'borders', 'glm', 'roads', 'rivers', 'wind', 'goes', 'model'],
     layerOpacity: {
         labels: 1.0,
         borders: 0.75,
         glm: 1.0,
+        roads: 0.95,
         rivers: 1.0,
         wind: 1.0,
         goes: 0.94,
@@ -141,6 +143,8 @@ export const GOES_PATHS = {
     GLM_JSON: `${DATA3_BASE}/goes19_glm_latest.json`,
     RIOS_GEOJSON: `${DATA3_BASE}/rios_ac_latest.geojson`,
     CUENCAS_GEOJSON: `${DATA3_BASE}/cuencas_ac_latest.geojson`,
+    ROADS_GEOJSON: new URL("../../../data/carreteras_criticas_peru.geojson", import.meta.url).href,
+    ALERTS_JSON: new URL("../../../data/alertas_latest.json", import.meta.url).href,
     BORDERS_GEOJSON: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
 };
 

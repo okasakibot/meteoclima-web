@@ -2,9 +2,10 @@ import {
     state, escalas, latInicio, latFin, lonInicio, lonFin,
     dx, dy, width, height, limitesData
 } from './config.js';
-import { map, cargarMapaBase, applyLayerStyles, setBordersVisible, setLabelsVisible } from './mapa.js';
+import { map, cargarMapaBase, applyLayerStyles, setBordersVisible, setLabelsVisible, setRoadsVisible } from './mapa.js';
 import { actualizarMapa, descargarCapa, renderizarCalor, renderizarViento, prefetchCorteTransversal } from './datos.js';
 import { initGoesSystem, buildSyncedFrames, setRiversVisible, drawGoesColorbar } from './goes_controller.js';
+import { initAlertsUI } from './alertas.js';
 
 // ==========================================
 // 1. FORMATO DE FECHAS
@@ -406,6 +407,7 @@ const LAYER_LABELS = {
     wind:    '🌬️ Viento Animado',
     goes:    '🛰️ Satélite GOES',
     model:   '🌡️ Variable Modelo',
+    roads:   '🛣️ Vías Críticas',
 };
 
 function renderLayerManager() {
@@ -808,6 +810,20 @@ export function initUI() {
             : 'px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition font-bold border border-slate-500';
         await setRiversVisible(next);
     });
+
+    // Botón Carreteras Críticas (100% independiente)
+    const btnRoads = document.getElementById('btn-roads-toggle');
+    btnRoads?.addEventListener('click', async () => {
+        const next = !state.showRoads;
+        btnRoads.innerText = next ? '🛣️ Vías: ON' : '🛣️ Vías: OFF';
+        btnRoads.className = next
+            ? 'px-2 py-0.5 bg-amber-600 hover:bg-amber-500 text-white rounded transition font-bold border border-amber-400'
+            : 'px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition font-bold border border-slate-500';
+        await setRoadsVisible(next);
+    });
+
+    // Inicializar Centro de Alertas
+        initAlertsUI();    
 }
 
 // ==========================================

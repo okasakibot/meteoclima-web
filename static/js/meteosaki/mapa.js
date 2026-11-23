@@ -15,18 +15,20 @@ export const map = L.map('map', {
 
 // Mapa de ID lógico -> nombre del pane en Leaflet
 export const LAYER_PANES = {
-    model:   'heatPane',    // Mantiene compatibilidad con ForecastRenderer
+    model:   'heatPane',
     goes:    'goesPane',
     wind:    'windPane',
     rivers:  'riversPane',
+    roads:   'roadsPane',
     glm:     'glmPane',
     borders: 'bordersPane',
     labels:  'labelsPane',
 };
 
-Object.values(LAYER_PANES).forEach((paneName) => {
+Object.entries(LAYER_PANES).forEach(([key, paneName]) => {
     map.createPane(paneName);
-    map.getPane(paneName).style.pointerEvents = 'none';
+    // Permitir clics en roadsPane para ver el popup del tramo
+    map.getPane(paneName).style.pointerEvents = (key === 'roads') ? 'auto' : 'none';
 });
 
 export function applyLayerStyles() {
@@ -106,6 +108,103 @@ export function setLabelsVisible(visible) {
     } else if (state.currentLabelsLayer) {
         map.removeLayer(state.currentLabelsLayer);
     }
+}
+
+
+let roadsLayer = null;
+const roadsCanvasRenderer = L.canvas({ pane: 'roadsPane', padding: 0.5 });
+
+export async function setRoadsVisible(visible) {
+    state.showRoads = visible;
+    if (visible && !roadsLayer) {
+        try {
+            const res = await fetch(GOES_PATHS.ROADS_GEOJSON);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const geojson = await res.json();
+
+            roadsLayer = L.geoJSON(geojson, {
+                pane: 'roadsPane',
+                renderer: roadsCanvasRenderer,
+                interactive: false, // El clic lo maneja el evento unificado del mapa
+                style: (f) => {
+                    const lvl = f.properties?.nivel || 1;
+                    return {
+                        color: lvl === 3 ? '#ef4444' : (lvl === 2 ? '#f97316' : '#facc15'),
+                        weight: lvl === 3 ? 3.0 : (lvl === 2 ? 2.2 : 1.5),
+                        opacity: 0.95,
+                    };
+                },
+            });
+        } catch (err) {
+            console.error("Error cargando carreteras críticas:", err);
+            return;
+        }
+    }
+
+    if (!roadsLayer) return;
+    if (visible) roadsLayer.addTo(map);
+    else {
+        map.removeLayer(roadsLayer);
+        map.closePopup();
+    }
+}
+
+
+// Busca el tramo vial más cercano al punto dentro de un radio real en píxeles
+function findNearestRoad(latlng, maxDistPx = 30) {
+    if (!state.showRoads || !roadsLayer) return null;
+
+    const clickPt = map.latLngToContainerPoint(latlng);
+    // Caja de búsqueda real en píxeles convertida a lat/lng
+    const sw = map.containerPointToLatLng([clickPt.x - maxDistPx, clickPt.y + maxDistPx]);
+    const ne = map.containerPointToLatLng([clickPt.x + maxDistPx, clickPt.y - maxDistPx]);
+    const searchBounds = L.latLngBounds(sw, ne);
+
+    let bestFeature = null;
+    let bestDist = maxDistPx;
+
+    roadsLayer.eachLayer((layer) => {
+        if (!layer.getBounds || !layer.getBounds().intersects(searchBounds)) return;
+
+        const latlngs = layer.getLatLngs();
+        const lines = Array.isArray(latlngs[0]) ? latlngs : [latlngs];
+
+        for (const line of lines) {
+            for (let i = 0; i < line.length - 1; i++) {
+                const p1 = map.latLngToContainerPoint(line[i]);
+                const p2 = map.latLngToContainerPoint(line[i + 1]);
+                const d = L.LineUtil.pointToSegmentDistance(clickPt, p1, p2);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestFeature = layer.feature;
+                }
+            }
+        }
+    });
+
+    return bestFeature;
+}
+
+export function hasRoadNear(latlng, maxDistPx = 22) {
+    return findNearestRoad(latlng, maxDistPx) !== null;
+}
+
+export function getRoadPopupHtml(latlng, maxDistPx = 30) {
+    const bestFeature = findNearestRoad(latlng, maxDistPx);
+    if (!bestFeature) return null;
+
+    const p = bestFeature.properties || {};
+    const lvlTxt = p.nivel === 3 ? '🔴 Muy Alto' : (p.nivel === 2 ? '🟠 Alto' : '🟡 Moderado');
+
+    return `
+        <div style="font-size:12px; line-height:1.4;">
+            <b>🛣️ Ruta ${p.ruta || 'S/N'}</b> (${p.red || ''})<br>
+            <b>Dpto:</b> ${p.dpto || '-'}<br>
+            <b>Criticidad:</b> ${lvlTxt}<br>
+            <b>Eventos INGEMMET:</b> ${p.n_ev ?? 0}${p.tipo ? ` (${p.tipo})` : ''}<br>
+            <b>Zona Crítica:</b> ${p.zc ? 'Sí' : 'No'} | <b>ANA:</b> ${p.ana ? 'Sí' : 'No'}
+        </div>
+    `;
 }
 
 export function cargarMapaBase(tipo = 'satellite1') {

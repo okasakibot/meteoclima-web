@@ -1,6 +1,6 @@
 // static/js/meteosaki/goes_controller.js
 import { state, GOES_PATHS, GOES_SETTINGS, GOES_CHANNELS_CFG } from './config.js';
-import { map } from './mapa.js';
+import { map, getRoadPopupHtml, hasRoadNear } from './mapa.js';
 import { openZarrMeta, loadGlmJson, getViewportSlice, prefetchFrames } from './goes_datos.js';
 import { SatelliteRenderer } from './goes_render.js';
 import { createRiversLayer, loadRiversGeoJson, getAcColor } from './rios.js';
@@ -290,8 +290,104 @@ export function clearGoesCanvas() {
 }
 
 // ==========================================
-// 4. RÍOS AC Y CUENCAS (100% INDEPENDIENTE)
+// 4. RÍOS AC, CUENCAS Y POPUP UNIFICADO (VÍAS + RÍOS)
 // ==========================================
+let basinsFeatures = [];
+const MIN_POPUP_ZOOM = 4;
+
+function pointInRing(lon, lat, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const intersect = ((yi > lat) !== (yj > lat)) &&
+            (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-12) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function pointInGeometry(lon, lat, geom) {
+    if (!geom) return false;
+    if (geom.type === 'Polygon') {
+        if (!pointInRing(lon, lat, geom.coordinates[0])) return false;
+        for (let i = 1; i < geom.coordinates.length; i++) {
+            if (pointInRing(lon, lat, geom.coordinates[i])) return false;
+        }
+        return true;
+    }
+    if (geom.type === 'MultiPolygon') {
+        return geom.coordinates.some((poly) => {
+            if (!pointInRing(lon, lat, poly[0])) return false;
+            for (let i = 1; i < poly.length; i++) {
+                if (pointInRing(lon, lat, poly[i])) return false;
+            }
+            return true;
+        });
+    }
+    return false;
+}
+
+function getBasinPopupHtml(latlng) {
+    if (!state.showRivers || basinsFeatures.length === 0) return null;
+    const { lng: lon, lat } = latlng;
+    const feat = basinsFeatures.find((f) => pointInGeometry(lon, lat, f.geometry));
+    if (!feat) return null;
+
+    const { nombre, AC } = feat.properties;
+    const color = getAcColor(Number(AC));
+    const sign = Number(AC) > 0 ? "+" : "";
+    return `
+        <div style="font-size:12px; line-height:1.4;">
+            <div style="font-weight:700; margin-bottom:3px;">🌊 ${nombre}</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>
+                <span>AC: <b>${sign}${AC}%</b></span>
+            </div>
+        </div>
+    `;
+}
+
+// Listener único para Vías Críticas + Cuencas/Ríos (solo con zoom > 4)
+map.on('click', (e) => {
+    if (state.isSelectingCrossSection) return;
+    if (map.getZoom() <= MIN_POPUP_ZOOM) return;
+    if (!state.showRivers && !state.showRoads) return;
+
+    const sections = [];
+    const roadHtml = getRoadPopupHtml(e.latlng);
+    if (roadHtml) sections.push(roadHtml);
+
+    const basinHtml = getBasinPopupHtml(e.latlng);
+    if (basinHtml) sections.push(basinHtml);
+
+    if (sections.length === 0) return;
+
+    L.popup({ closeButton: true, autoPan: false })
+        .setLatLng(e.latlng)
+        .setContent(sections.join('<hr style="margin:6px 0; border-color:#475569;">'))
+        .openOn(map);
+});
+
+map.on('zoomend', () => {
+    if (map.getZoom() <= MIN_POPUP_ZOOM) map.closePopup();
+});
+
+map.on('mousemove', (e) => {
+    if (state.isSelectingCrossSection) return;
+    const container = map.getContainer();
+
+    if (map.getZoom() <= MIN_POPUP_ZOOM || (!state.showRivers && !state.showRoads)) {
+        container.style.cursor = '';
+        return;
+    }
+
+    const overRoad = state.showRoads && hasRoadNear(e.latlng, 22);
+    const overBasin = !overRoad && state.showRivers && basinsFeatures.some((f) => pointInGeometry(e.latlng.lng, e.latlng.lat, f.geometry));
+
+    container.style.cursor = (overRoad || overBasin) ? 'pointer' : '';
+});
+
 export async function initRiversSystem() {
     if (isRiversInitialized) return;
     state.riversData = await loadRiversGeoJson(GOES_PATHS.RIOS_GEOJSON);
@@ -301,27 +397,7 @@ export async function initRiversSystem() {
         const res = await fetch(`${GOES_PATHS.CUENCAS_GEOJSON}?t=${Date.now()}`);
         if (res.ok) {
             const geojson = await res.json();
-            basinsLayer = L.geoJSON(geojson, {
-                style: { color: "transparent", weight: 0, fillColor: "#ffffff", fillOpacity: 0 },
-                onEachFeature(feature, layer) {
-                    layer.on("click", (e) => {
-                        if (!state.showRivers || state.isSelectingCrossSection) return;
-                        const { nombre, AC } = feature.properties;
-                        const color = getAcColor(Number(AC));
-                        const sign = Number(AC) > 0 ? "+" : "";
-                        L.popup({ closeButton: true, autoPan: false })
-                            .setLatLng(e.latlng)
-                            .setContent(`
-                                <div style="font-weight:700; margin-bottom:4px;">${nombre}</div>
-                                <div style="display:flex; align-items:center; gap:6px;">
-                                    <span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>
-                                    <span>AC: <b>${sign}${AC}%</b></span>
-                                </div>
-                            `)
-                            .openOn(map);
-                    });
-                },
-            });
+            basinsFeatures = geojson.features || [];
         }
     } catch (e) {
         console.warn("No se pudo cargar cuencas:", e);
@@ -335,13 +411,7 @@ export async function setRiversVisible(show) {
         await initRiversSystem();
     }
     if (riversLayer) riversLayer._rebuildPaths();
-    if (basinsLayer) {
-        if (show) basinsLayer.addTo(map);
-        else {
-            map.removeLayer(basinsLayer);
-            map.closePopup();
-        }
-    }
+    if (!show) map.closePopup();
 }
 
 // ==========================================
