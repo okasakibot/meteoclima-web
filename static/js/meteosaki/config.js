@@ -48,7 +48,7 @@ export const escalas = {
     'q': { min: 0, max: 20, unit: ' g/kg', name: 'Humedad Específica', repo: 'data1' },
     't2m': { min: -10, max: 40, unit: '°C', name: 'Temp a 2m', repo: 'data2' },
     'tp': { min: 0, max: 20, unit: ' mm/3h', name: 'Precipitación Total', repo: 'data1' },
-    'msl': { min: 970, max: 1020, unit: ' hPa', name: 'Presión al Nivel del Mar', repo: 'data1' },
+    'msl': { min: 970, max: 1020, unit: ' hPa', name: 'Presión al Nivel del Mar', repo: 'data2' },
     'vo': { min: -1, max: 1, unit: ' /3h', name: 'Vorticidad relativa', repo: 'data1' },
     'd': { min: -1, max: 1, unit: ' /3h', name: 'Divergencia', repo: 'data1' },
     'z': { min: 0, max: 6000, unit: ' hPa', name: 'Elevación', repo: 'data1' },
@@ -57,7 +57,7 @@ export const escalas = {
     'conv_q': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. de Humedad', repo: 'data2' },
     'adv_q': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Adv. de Humedad', repo: 'data2' },
     'adv_t': { min: -8, max: 8, unit: ' °C/3h', name: 'Adv. de Temperatura', repo: 'data2' },
-    'conv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. HR (Sup)', repo: 'data1' },
+    'conv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Conv. HR (Sup)', repo: 'data2' },
     'adv_q2m': { min: -8, max: 8, unit: ' (g/kg)/3h', name: 'Adv. HR (Sup)', repo: 'data2' },
     'adv_t2m': { min: -8, max: 8, unit: ' °C/3h', name: 'Adv. Temp (Sup)', repo: 'data2' }
 };
