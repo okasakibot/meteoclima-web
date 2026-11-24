@@ -65,35 +65,57 @@ function renderList() {
         const horTag = `<span class="text-[10px] text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-600">${HORIZON_LABEL[it.horizonte] || it.horizonte}</span>`;
 
         if (currentTab === 'quebradas') {
-            card.innerHTML = `
-                <div class="flex items-center justify-between gap-2">
-                    <div class="font-bold text-slate-100 text-xs">🌊 Cuenca ${it.cuenca}</div>
-                    <div class="flex items-center gap-1.5">${horTag} ${badge}</div>
-                </div>
-                <div class="text-[11px] text-slate-300">${it.motivo || ''}</div>
-                <div class="text-[10px] text-slate-400 flex flex-wrap gap-3 mt-0.5">
-                    <span>Pico 3h: <b>${it.tp_3h_max_mm} mm</b></span>
-                    <span>24h: <b>${it.tp_24h_mm} mm</b></span>
-                    <span>48h: <b>${it.tp_48h_mm} mm</b></span>
-                    <span>Ventana: <b>${it.ventana_utc}</b></span>
-                </div>
-            `;
-        } else {
-            card.innerHTML = `
-                <div class="flex items-center justify-between gap-2">
-                    <div class="font-bold text-slate-100 text-xs">🛣️ Ruta ${it.ruta} (${it.red}) — ${it.dpto}</div>
-                    <div class="flex items-center gap-1.5">${horTag} ${badge}</div>
-                </div>
-                <div class="text-[11px] text-slate-300 truncate">${it.trayecto || it.peligro_dom}</div>
-                <div class="text-[10px] text-slate-400 flex flex-wrap gap-3 mt-0.5">
-                    <span>Tramos: <b>${it.tramos_expuestos}</b></span>
-                    <span>24h: <b>${it.tp_24h_mm} mm</b></span>
-                    <span>48h: <b>${it.tp_48h_mm} mm</b></span>
-                    <span>Peligro: <b>${it.peligro_dom}</b></span>
-                    <span>Ventana: <b>${it.ventana_utc}</b></span>
-                </div>
-            `;
-        }
+          const metricsHtml = it.horizonte === 'nowcast'
+              ? `
+                  ${it.goes_tb_c !== null && it.goes_tb_c !== undefined && it.goes_tb_c <= -30 ? `<span>GOES: <b>${it.goes_tb_c}°C</b></span>` : ''}
+                  ${it.glm_rayos ? `<span>GLM: <b>${it.glm_rayos} rayos</b></span>` : ''}
+                  ${it.ac_pct !== undefined ? `<span>AC: <b>${it.ac_pct > 0 ? '+' : ''}${it.ac_pct}%</b></span>` : ''}
+                  <span>Ventana: <b>${it.ventana_utc}</b></span>
+                `
+              : `
+                  <span>Pico 3h: <b>${it.tp_3h_max_mm} mm</b></span>
+                  <span>24h: <b>${it.tp_24h_mm} mm</b></span>
+                  <span>48h: <b>${it.tp_48h_mm} mm</b></span>
+                  <span>Ventana: <b>${it.ventana_utc}</b></span>
+                `;
+
+          card.innerHTML = `
+              <div class="flex items-center justify-between gap-2">
+                  <div class="font-bold text-slate-100 text-xs">🌊 ${it.cuenca}</div>
+                  <div class="flex items-center gap-1.5">${horTag} ${badge}</div>
+              </div>
+              <div class="text-[11px] text-slate-300">${it.motivo || ''}</div>
+              <div class="text-[10px] text-slate-400 flex flex-wrap gap-3 mt-0.5">
+                  ${metricsHtml}
+              </div>
+          `;
+      } else {
+          const roadMetricsHtml = it.horizonte === 'nowcast'
+              ? `
+                  <span>Tramos: <b>${it.tramos_expuestos}</b></span>
+                  ${it.goes_tb_c !== null && it.goes_tb_c !== undefined ? `<span>GOES: <b>${it.goes_tb_c}°C</b></span>` : ''}
+                  <span>Peligro: <b>${it.peligro_dom}</b></span>
+                  <span>Ventana: <b>${it.ventana_utc}</b></span>
+                `
+              : `
+                  <span>Tramos: <b>${it.tramos_expuestos}</b></span>
+                  <span>24h: <b>${it.tp_24h_mm} mm</b></span>
+                  <span>48h: <b>${it.tp_48h_mm} mm</b></span>
+                  <span>Peligro: <b>${it.peligro_dom}</b></span>
+                  <span>Ventana: <b>${it.ventana_utc}</b></span>
+                `;
+
+          card.innerHTML = `
+              <div class="flex items-center justify-between gap-2">
+                  <div class="font-bold text-slate-100 text-xs">🛣️ Ruta ${it.ruta} (${it.red}) — ${it.dpto}</div>
+                  <div class="flex items-center gap-1.5">${horTag} ${badge}</div>
+              </div>
+              <div class="text-[11px] text-slate-300 truncate">${it.trayecto || it.peligro_dom}</div>
+              <div class="text-[10px] text-slate-400 flex flex-wrap gap-3 mt-0.5">
+                  ${roadMetricsHtml}
+              </div>
+          `;
+      }
 
         // Al hacer clic: cerrar modal, activar la capa y volar al punto crítico
         card.addEventListener('click', async () => {
